@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AdGuard Auditor</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>AdGuard AI Auditor</h1>
+    <button onclick="runAudit()">Начать анализ</button>
+    <pre id="results"></pre>
+    <script>
+        async function runAudit() {
+            document.getElementById('results').innerText = 'Analysis started...';
+            const response = await fetch('/api/v1/auto-analis', { method: 'POST' });
+            const data = await response.json();
+            document.getElementById('results').innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>
