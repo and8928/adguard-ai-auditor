@@ -5,7 +5,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from ....services import analysis_service
 from ....services import controller
-from src.adguard_auditor.schemas.storage import RowData, ModelServices
+from ....schemas.storage import *
+from ....schemas.audit import *
+from ....core.logger import log
 import asyncio
 from src.gemini import init as gemini
 
@@ -52,7 +54,7 @@ def filter_data(request: Request, data: str, model_services: ModelServices = Que
     }
 )
 
-                ) -> dict:
+                ) -> AnalysisResponse:
     """
     Return clin logs form AdGuard server
     :param data: data for analysis witch llm
@@ -74,7 +76,7 @@ def auto_analis(request: Request, limit: int = 0, model_services: ModelServices 
     }
 )
 
-                ) -> dict:
+                ) -> AnalysisResponse:
     """
     Return clin logs form AdGuard server
     :param data: data for analysis witch llm
@@ -87,3 +89,9 @@ def auto_analis(request: Request, limit: int = 0, model_services: ModelServices 
     result = gemini.generate(str(ctrl.clean_data()))
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     return result
+
+@router.get("/get_actual_filter")
+def get_actual_filter(request: Request) -> dict:
+    ctrl = controller.DataController()
+    log.debug(f"[audit][get_actual_filter] -> start")
+    return ctrl.get_actual_filter()

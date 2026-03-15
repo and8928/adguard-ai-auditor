@@ -86,7 +86,7 @@ def generate(log_data: str):
     }
 
     stream = client.responses.stream(
-        model=settings.OPENAI_MODEL_NAME,  # например "gpt-5-mini" или "gpt-4.1"
+        model=settings.OPENAI_MODEL_NAME,
         input=[
             {
                 "role": "system",
