@@ -23,7 +23,7 @@ async def get_index(request: Request):
 
 
 @router.get("/get-row-request-log")
-def get_row_request_log(request: Request, limit: int = 100) -> RowData:
+def get_row_request_log(limit: int = 100) -> RowData:
     """
     Return row logs form AdGuard server
     :param limit: if 0 - No limit, get data for all of time
@@ -33,7 +33,7 @@ def get_row_request_log(request: Request, limit: int = 100) -> RowData:
 
 
 @router.get("/get-response-log")
-def get_response_log(request: Request, limit: int = 100) -> dict[str, list]:
+def get_response_log(limit: int = 100) -> dict[str, list]:
     """
     Return clin logs form AdGuard server
     :param limit: if 0 - No limit, get data for all of time
@@ -44,7 +44,7 @@ def get_response_log(request: Request, limit: int = 100) -> dict[str, list]:
 
 
 @router.post("/ai-analis-data")
-def filter_data(request: Request, data: str, model_services: ModelServices = Query(
+def filter_data(data: str, model_services: ModelServices = Query(
     default=ModelServices.GEMINI,
     description="Выберите модель для анализа данных",
     examples={
@@ -66,7 +66,7 @@ def filter_data(request: Request, data: str, model_services: ModelServices = Que
 
 
 @router.post("/auto-analis")
-def auto_analis(request: Request, limit: int = 0, model_services: ModelServices = Query(
+def auto_analis(limit: int = 0, model_services: ModelServices = Query(
     default=ModelServices.GEMINI,
     description="Выберите модель для анализа данных",
     examples={
@@ -85,13 +85,37 @@ def auto_analis(request: Request, limit: int = 0, model_services: ModelServices 
 
     ctrl = controller.DataController()
     asyncio.run(ctrl.get_data(limit=limit))
-
-    result = gemini.generate(str(ctrl.clean_data()))
+    if ctrl.clean_data():
+        result = gemini.generate(str(ctrl.clean_data()))
+    else:
+        {"Error":"No data"}
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
+@router.post("/to_block")
+def to_block(data: BlockRequest):
+    """
+    Принимает четкую структуру данных для блокировки.
+    Раньше было data: str, теперь валидированный объект.
+    """
+    filters = get_actual_filter()
+    print(f"data = {data}")
+    for el in data.domains:
+        print(el.domain)
+        if el.domain in filters['full_domain_list']:
+            # for i in
+            print("Have!")
+        else:
+            print("No!")
+
+    return {
+        "status": "success",
+        "blocked_count": False,
+        "message": f"Domains queued for blocking with reason: Flase"
+    }
+
 @router.get("/get_actual_filter")
-def get_actual_filter(request: Request) -> dict:
+def get_actual_filter() -> dict:
     ctrl = controller.DataController()
     log.debug(f"[audit][get_actual_filter] -> start")
     return ctrl.get_actual_filter()

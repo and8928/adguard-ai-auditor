@@ -28,6 +28,17 @@ def clean_and_prepare_logs(row_data):
     return results
 
 
+# def clean_filtering(row_data):
+#     optimized = optimize_filtering_rules(row_data)
+#     final_result = apply_forced_domains(
+#         rules_objects=optimized['clean_rules_objects'],
+#         # force_block=DOMAINS_TO_BLOCK,
+#         # force_unblock=DOMAINS_TO_UNBLOCK
+#     )
+#     print(f"final_result = {final_result}")
+#     return final_result
+
+
 def parse_rule_filtering(rule: str) -> FilterRule:
     """Breaks down a single rule into its components"""
     original_raw = rule.strip()
@@ -83,8 +94,9 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
         key = (r.domain_pattern, tuple(sorted(r.modifiers)))
         grouped[key].append(r)
 
-    clean_rules = []
+    clean_rules = {}
     warnings_merged = []
+    # full_domain_list= []
 
     for key, rules_list in grouped.items():
         domain_pattern, modifiers = key
@@ -97,25 +109,25 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
 
         if blocks and not exceptions:
             winner = next(b for b in blocks if (1 if b.is_important else 0) == max_block_pri)
-            clean_rules.append(winner)
+            clean_rules[winner.domain]= winner
             continue
 
         if exceptions and not blocks:
             winner = next(e for e in exceptions if (1 if e.is_important else 0) == max_exc_pri)
-            clean_rules.append(winner)
+            clean_rules[winner.domain]= winner
             continue
 
         if max_block_pri > max_exc_pri:
             winner = next(b for b in blocks if b.is_important)
-            clean_rules.append(winner)
+            clean_rules[winner.domain]= winner
 
         elif max_exc_pri > max_block_pri:
             winner = next(e for e in exceptions if e.is_important)
-            clean_rules.append(winner)
+            clean_rules[winner.domain]= winner
 
         else:
             winner = next(b for b in blocks if (1 if b.is_important else 0) == max_block_pri)
-            clean_rules.append(winner)
+            clean_rules[winner.domain]= winner
 
             warnings_merged.append({
                 'domain': winner.domain,
@@ -126,8 +138,9 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
             })
 
     return {
-        'clean_rules_raw': [r.raw for r in clean_rules],
+        # 'clean_rules_raw': [r.raw for r in clean_rules],
         'clean_rules_objects': clean_rules,
+        # 'full_domain_list': [f.domain for f in clean_rules],
         'warnings_merged': warnings_merged,
         'invalid_rules': [r.raw for r in invalid_rules],
         'stats': {
