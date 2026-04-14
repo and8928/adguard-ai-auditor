@@ -2,6 +2,7 @@
 # pip install google-genai
 import os
 import json
+import time
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
@@ -10,7 +11,7 @@ from src.adguard_auditor.core import prompts
 from src.adguard_auditor.core.logger import log
 
 
-def generate(log_data: str):
+def generate(log_data: str, user_prompt: str = ""):
     client = genai.Client(
         api_key=settings.GEMINI_API_KEY,
     )
@@ -79,6 +80,20 @@ def generate(log_data: str):
         ),
     ]
 
+    if user_prompt.strip():
+        user_context_section = f"""
+    USER PREFERENCES AND OVERRIDES (STRICTLY FOLLOW THESE):
+    The user has provided the following specific instructions regarding certain domains or services. 
+    Prioritize these instructions over you default logic:
+    "{user_prompt}"
+    """
+    else:
+        user_context_section = ""
+
+    final_system_prompt = prompts.FIRST_SYSTEM_PROMPT.format(
+        user_context_section=user_context_section
+    )
+
     generate_content_config = types.GenerateContentConfig(
         thinking_config=types.ThinkingConfig(
             thinking_level="HIGH",
@@ -86,31 +101,44 @@ def generate(log_data: str):
         response_mime_type="application/json",
         response_schema=response_schema,
         system_instruction=[
-            types.Part.from_text(text=prompts.FIRST_SYSTEM_PROMPT),
+            types.Part.from_text(text=final_system_prompt),
         ],
         temperature=0.2,
     )
+
+    max_attempts_per_model = 2
+
     for model in settings.GEMINI_MODELS_NAME:
         log.info(f"Trying to use model: {model}...")
-        try:
-            result = generate_content(client, contents, generate_content_config, model)
-            log.info(f"Successfully generated response using {model}")
-            return result
+        for attempt in range(1, max_attempts_per_model + 1):
+            try:
+                result = generate_content(client, contents, generate_content_config, model)
+                log.info(f"Successfully generated response using {model}")
+                return result
 
-        except APIError as e:
-            if e.code == 429:  # Too Many Requests
-                log.warning(f"Model {model} rate limited (429). Switching to the next model...")
-                continue
-            else:
-                log.error(f"API Error with model {model}: {e}")
-                raise e
+            except APIError as e:
+                if e.code in [429, 503]:
+                    log.warning(f"Model {model} overloaded (Error {e.code}). Attempt {attempt}/{max_attempts_per_model}.")
+                    if attempt < max_attempts_per_model:
+                        time.sleep(10)
+                        continue
+                    else:
+                        log.warning(f"Exhausted attempts for {model}. Switching to next model...")
+                        break
+                else:
+                    log.error(f"API Error with model {model}: {e}")
+                    break
 
-        except json.JSONDecodeError as e:
-            log.warning(f"Model {model} returned invalid JSON: {e}. Trying next model...")
-            continue
-        except Exception as e:
-            log.error(f"Unexpected error with model {model}: {e}")
-            raise e
+            except json.JSONDecodeError as e:
+                log.warning(f"Model {model} returned invalid JSON: {e}. Trying next model...")
+                break
+            except Exception as e:
+                log.error(f"Network/Unexpected error with model {model}: {e}")
+                if attempt < max_attempts_per_model:
+                    time.sleep(2)
+                    continue
+                else:
+                    break
     log.error("All Gemini models failed or rate limited.")
     return {"error": "All models failed or rate limited. Please try again later."}
 

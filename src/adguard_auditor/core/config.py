@@ -1,6 +1,9 @@
 # Управление конфигурацией (чтение .env)
 from pydantic_settings import BaseSettings
+import os
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AdGuard AI Auditor"
@@ -21,7 +24,9 @@ class Settings(BaseSettings):
     DEBUG_MOD: bool = False
 
     class Config:
-        env_file = ".env"
+        env_file = os.path.join(BASE_DIR, ".env")
+        print(f"init .env file in: {env_file}")
+        env_file_encoding = 'utf-8'
 
 
 settings = Settings()

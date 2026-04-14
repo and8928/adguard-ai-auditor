@@ -70,12 +70,29 @@ class AdGuardController:
         log.debug(f"[adguard_client][get_actual_filter][text] -> {result.text}")
         if result.status_code == 200:
             result_dict = json.loads(result.text)
-            print(f"result_dict = {result_dict['user_rules']}")
             return result_dict['user_rules']
         else:
             log.error(f"[get_actual_filter][status_code] -> {result.status_code}")
             self.bad_requests = True
             return False, False
+
+    def set_actual_filter(self, raw_rules: list[str]) -> bool:
+        """Send an update list of rules"""
+        if not self.check_session():
+            return False
+
+        url = endpoints.get_url(endpoints.SET_FILTERING)
+        # AdGuard API {"rules": ["rule1", "rule2"]}
+        payload = {"rules": raw_rules}
+
+        result = requests.post(url=url, json=payload, cookies={'agh_session': settings.AGH_SESSION})
+        log.debug(f"[adguard_client][set_actual_filter] -> status: {result.status_code}")
+
+        if result.status_code == 200:
+            return True
+        else:
+            log.error(f"Error setting filter: {result.text}")
+            return False
 
 
 ag_client = AdGuardController()

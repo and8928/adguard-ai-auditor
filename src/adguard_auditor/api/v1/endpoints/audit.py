@@ -1,15 +1,14 @@
-from email.policy import default
-
-from fastapi import APIRouter, Request, Query
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Request, Query, HTTPException
+from ....schemas.adguard_models import OptimizedRulesSet
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from ....services import analysis_service
+from src.gemini import init as gemini
 from ....services import controller
 from ....schemas.storage import *
 from ....schemas.audit import *
 from ....core.logger import log
 import asyncio
-from src.gemini import init as gemini
 
 router = APIRouter()
 templates = Jinja2Templates(directory="src/adguard_auditor/frontend/templates")
@@ -66,7 +65,10 @@ def filter_data(data: str, model_services: ModelServices = Query(
 
 
 @router.post("/auto-analis")
-def auto_analis(limit: int = 0, model_services: ModelServices = Query(
+def auto_analis(limit: int = 0, user_prompt: str = Query(
+    default="",
+    description="Suggestions, for example, wbsg8v.xyz is not a dangerous domain, I use it"
+), model_services: ModelServices = Query(
     default=ModelServices.GEMINI,
     description="Выберите модель для анализа данных",
     examples={
@@ -86,36 +88,61 @@ def auto_analis(limit: int = 0, model_services: ModelServices = Query(
     ctrl = controller.DataController()
     asyncio.run(ctrl.get_data(limit=limit))
     if ctrl.clean_data():
-        result = gemini.generate(str(ctrl.clean_data()))
+        result = gemini.generate(str(ctrl.clean_data()), user_prompt=user_prompt)
     else:
-        {"Error":"No data"}
+        {"Error": "No data"}
     # print(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
+
 @router.post("/to_block")
 def to_block(data: BlockRequest):
-    """
-    Принимает четкую структуру данных для блокировки.
-    Раньше было data: str, теперь валидированный объект.
-    """
-    filters = get_actual_filter()
-    print(f"data = {data}")
-    for el in data.domains:
-        print(el.domain)
-        if el.domain in filters['full_domain_list']:
-            # for i in
-            print("Have!")
-        else:
-            print("No!")
+    """Blocked selected domains"""
+    ctrl = controller.DataController()
+
+    optimized_rules = ctrl.get_actual_filter()
+
+    domains_list = [item.domain for item in data.domains]
+
+    final_raw_rules, stats = analysis_service.apply_blocks_to_rules(optimized_rules, domains_list)
+
+    success = ctrl.set_actual_filter(final_raw_rules)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save rules in AdGuard")
 
     return {
         "status": "success",
-        "blocked_count": False,
-        "message": f"Domains queued for blocking with reason: Flase"
+        "action": "block",
+        "stats": stats,
+        "message": f"Successfully processed {len(domains_list)} domains."
     }
 
+
+@router.post("/to_unblock")
+def to_unblock(data: BlockRequest):
+    """UnBlocked selected domains"""
+    ctrl = controller.DataController()
+    optimized_rules = ctrl.get_actual_filter()
+    domains_list = [item.domain for item in data.domains]
+
+    final_raw_rules, stats = analysis_service.apply_unblocks_to_rules(optimized_rules, domains_list)
+
+    success = ctrl.set_actual_filter(final_raw_rules)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save rules in AdGuard")
+
+    return {
+        "status": "success",
+        "action": "unblock",
+        "stats": stats,
+        "message": f"Successfully processed {len(domains_list)} domains."
+    }
+
+
 @router.get("/get_actual_filter")
-def get_actual_filter() -> dict:
+def get_actual_filter() -> OptimizedRulesSet:
     ctrl = controller.DataController()
     log.debug(f"[audit][get_actual_filter] -> start")
     return ctrl.get_actual_filter()

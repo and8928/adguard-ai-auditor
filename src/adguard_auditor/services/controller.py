@@ -37,3 +37,7 @@ class DataController:
         log.debug(f"[controller][get_actual_filter] -> start")
         row_data = ag_client.get_actual_filter()
         return analysis_service.optimize_filtering_rules(row_data)
+
+    def set_actual_filter(self, raw_rules: list[str]) -> bool:
+        log.debug(f"[controller][set_actual_filter] -> start. Rules count: {len(raw_rules)}")
+        return ag_client.set_actual_filter(raw_rules)

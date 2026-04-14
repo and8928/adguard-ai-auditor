@@ -1,4 +1,4 @@
-from ..schemas.adguard_models import FilterRule
+from ..schemas.adguard_models import FilterRule, OptimizedRulesSet, ConflictWarning, FilterStats
 from collections import defaultdict
 
 
@@ -26,18 +26,6 @@ def clean_and_prepare_logs(row_data):
             status = get_status(reason)
             results[status].append({'domain': domain, 'filterId': filterId})
     return results
-
-
-# def clean_filtering(row_data):
-#     optimized = optimize_filtering_rules(row_data)
-#     final_result = apply_forced_domains(
-#         rules_objects=optimized['clean_rules_objects'],
-#         # force_block=DOMAINS_TO_BLOCK,
-#         # force_unblock=DOMAINS_TO_UNBLOCK
-#     )
-#     print(f"final_result = {final_result}")
-#     return final_result
-
 
 def parse_rule_filtering(rule: str) -> FilterRule:
     """Breaks down a single rule into its components"""
@@ -137,20 +125,18 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
                 'kept_rule': winner.raw
             })
 
-    return {
-        # 'clean_rules_raw': [r.raw for r in clean_rules],
-        'clean_rules_objects': clean_rules,
-        # 'full_domain_list': [f.domain for f in clean_rules],
-        'warnings_merged': warnings_merged,
-        'invalid_rules': [r.raw for r in invalid_rules],
-        'stats': {
-            'total_input_lines': len(rules),
-            'valid_processed': len(valid_rules),
-            'total_clean': len(clean_rules),
-            'duplicates_and_conflicts_removed': len(valid_rules) - len(clean_rules),
-            'equal_power_conflicts': len(warnings_merged)
-        }
-    }
+    return OptimizedRulesSet(
+        clean_rules_objects=clean_rules,
+        warnings_merged=[ConflictWarning(**w) for w in warnings_merged],
+        invalid_rules=[r.raw for r in invalid_rules],
+        stats=FilterStats(
+            total_input_lines=len(rules),
+            valid_processed=len(valid_rules),
+            total_clean=len(clean_rules),
+            duplicates_and_conflicts_removed=len(valid_rules) - len(clean_rules),
+            equal_power_conflicts=len(warnings_merged)
+        )
+    )
 
 
 def apply_forced_domains(
@@ -212,3 +198,58 @@ def apply_forced_domains(
         'rules_raw': [r.raw for r in final_objects],
         'removed_conflicts': removed_due_to_conflict
     }
+
+
+def apply_blocks_to_rules(optimized_rules, domains_to_block: list[str]) -> tuple[list[str], dict]:
+    """
+    Applies blocking to the current ruleset.
+    Return the raw releset for sending and stats.
+    """
+    stats = {"added": 0, "overwritten_exceptions": 0, "already_blocked": 0}
+
+    for domain in domains_to_block:
+        existing_rule = optimized_rules.clean_rules_objects.get(domain)
+
+        if existing_rule:
+            if existing_rule.is_exception:
+                raw_rule = f"||{domain}^"
+                optimized_rules.clean_rules_objects[domain] = parse_rule_filtering(raw_rule)
+                stats["overwritten_exceptions"] += 1
+            else:
+                stats["already_blocked"] += 1
+        else:
+            raw_rule = f"||{domain}^"
+            optimized_rules.clean_rules_objects[domain] = parse_rule_filtering(raw_rule)
+            stats["added"] += 1
+
+    final_raw_rules = [r.raw for r in optimized_rules.clean_rules_objects.values()]
+    final_raw_rules.extend(optimized_rules.invalid_rules)
+
+    return final_raw_rules, stats
+
+
+def apply_unblocks_to_rules(optimized_rules, domains_to_unblock: list[str]) -> tuple[list[str], dict]:
+    """
+    Applies unblocks to the current ruleset.
+    """
+    stats = {"added": 0, "overwritten_blocks": 0, "already_unblocked": 0}
+
+    for domain in domains_to_unblock:
+        existing_rule = optimized_rules.clean_rules_objects.get(domain)
+
+        raw_rule = f"@@||{domain}^$important"
+
+        if existing_rule:
+            if not existing_rule.is_exception:
+                optimized_rules.clean_rules_objects[domain] = parse_rule_filtering(raw_rule)
+                stats["overwritten_blocks"] += 1
+            else:
+                stats["already_unblocked"] += 1
+        else:
+            optimized_rules.clean_rules_objects[domain] = parse_rule_filtering(raw_rule)
+            stats["added"] += 1
+
+    final_raw_rules = [r.raw for r in optimized_rules.clean_rules_objects.values()]
+    final_raw_rules.extend(optimized_rules.invalid_rules)
+
+    return final_raw_rules, stats
