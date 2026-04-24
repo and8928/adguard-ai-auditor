@@ -54,7 +54,7 @@ Example `.env` file:
 ```ini
 
 # AdGuard Settings
-ADGUARD_URL="http://192.168.1.1"
+ADGUARD_BASE_URL="http://192.168.1.1"
 ADGUARD_PORT=3333
 ADGUARD_USER="your_user"
 ADGUARD_PASSWORD="your_password"
@@ -105,14 +105,17 @@ src/
 │   │   └── logger.py           # Logging configuration
 │   ├── api/
 │   │   └── v1/
-│   │       └── endpoints/
-│   │           └── audit.py    # API routes
+│   │       └── endpoints/      # API routes
+│   │           ├── audit.py
+│   │           └──prompt_rules.py
 │   ├── services/
 │   │   ├── adguard_client.py   # AdGuard API logic
 │   │   ├── analysis_service.py # Cleaning and preparing logs
-│   │   └── controller.py       # Data controller
-│   ├── schemas/
-│   │   └── storage.py          # Pydantic models
+│   │   ├── controller.py       # Data controller
+│   │   └── prompt_rules_service.py
+│   ├── schemas/                # Pydantic models
+│   │   ├── storage.py
+│   │   └──prompt_rules.py
 │   ├── frontend/
 │   │   ├── static/             # CSS, JS
 │   │   └── templates/          # HTML templates
@@ -144,7 +147,7 @@ src/
   - [ ] Resources that work but shouldn't (false positives).
   - [ ] Resources that should be blocked (missed trackers/ads).
   - [ ] Ads detected on specific services.
-- [ ] **Filter Management**: Add reading of current user filters (`get_actual_filter`).
+- [X] **Filter Management**: Add reading of current user filters (`get_actual_filter`).
 
 ### 🔐 Authentication
 - [ ] **Auto Auth**: Implement automatic authorization in AdGuard Home (`_get_new_session`).
