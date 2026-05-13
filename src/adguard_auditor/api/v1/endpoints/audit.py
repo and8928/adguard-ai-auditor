@@ -2,9 +2,8 @@ from fastapi import APIRouter, Request, Query, HTTPException
 from ....schemas.adguard_models import OptimizedRulesSet
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
-from ....services import analysis_service
+from ....services import analysis_service, controller, prompt_rules_service
 from src.gemini import init as gemini
-from ....services import controller
 from ....schemas.storage import *
 from ....schemas.audit import *
 from ....core.logger import log
@@ -88,7 +87,9 @@ def auto_analis(limit: int = 0, user_prompt: str = Query(
     ctrl = controller.DataController()
     asyncio.run(ctrl.get_data(limit=limit))
     if ctrl.clean_data():
-        result = gemini.generate(str(ctrl.clean_data()), user_prompt=user_prompt)
+        active_rules_text = prompt_rules_service.get_active_rules_text()
+        final_user_prompt = f"{active_rules_text}\n\n{user_prompt}".strip()
+        result = gemini.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
     else:
         {"Error": "No data"}
     # print(json.dumps(result, indent=2, ensure_ascii=False))

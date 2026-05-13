@@ -54,7 +54,7 @@ Example `.env` file:
 ```ini
 
 # AdGuard Settings
-ADGUARD_BASE_URL="http://192.168.1.1"
+ADGUARD_URL="http://192.168.1.1"
 ADGUARD_PORT=3333
 ADGUARD_USER="your_user"
 ADGUARD_PASSWORD="your_password"
@@ -92,6 +92,7 @@ Available methods in the `/api/v1` namespace:
 - `GET /get-response-log?limit=100` — Get cleaned and grouped logs (Allowed / Blocked).
 - `POST /ai-analis-data` — Send custom data for analysis by the selected LLM.
 - `POST /auto-analis` — Full cycle: collect logs from AdGuard, clean, and send to AI analysis (default uses Gemini).
+- `POST /prompt-rules`, `GET /prompt-rules`, etc. — Manage user pre-prompts and custom rules for AI overrides.
 
 ## 📂 Project Structure
 
@@ -105,17 +106,14 @@ src/
 │   │   └── logger.py           # Logging configuration
 │   ├── api/
 │   │   └── v1/
-│   │       └── endpoints/      # API routes
-│   │           ├── audit.py
-│   │           └──prompt_rules.py
+│   │       └── endpoints/
+│   │           └── audit.py    # API routes
 │   ├── services/
 │   │   ├── adguard_client.py   # AdGuard API logic
 │   │   ├── analysis_service.py # Cleaning and preparing logs
-│   │   ├── controller.py       # Data controller
-│   │   └── prompt_rules_service.py
-│   ├── schemas/                # Pydantic models
-│   │   ├── storage.py
-│   │   └──prompt_rules.py
+│   │   └── controller.py       # Data controller
+│   ├── schemas/
+│   │   └── storage.py          # Pydantic models
 │   ├── frontend/
 │   │   ├── static/             # CSS, JS
 │   │   └── templates/          # HTML templates
@@ -135,7 +133,7 @@ src/
 - [ ] **Switch to `httpx`**: Replace `requests` with `httpx` for better async support and performance.
 
 ### 🤖 AI & Prompt Engineering
-- [ ] **Custom Prompt Rules**: Enhance system prompts with user-specific rules (e.g., override "Windows system widgets" as ads instead of required content).
+- [x] **Custom Prompt Rules**: Enhance system prompts with user-specific rules (e.g., override "Windows system widgets" as ads instead of required content).
   - *Example*: AI suggests `{ "domain": "assets.msn.com", "reason": "Required for Windows widgets", "confidence": "MEDIUM" }`, but user wants to block it.
 - [ ] **Local AI**: Add support for running local LLM models (e.g., via Ollama or LM Studio).
 - [ ] **API Integrations**: Integrate Qwen API and improve OpenAI integration stability.
