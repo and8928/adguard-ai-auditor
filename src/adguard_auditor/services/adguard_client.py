@@ -1,4 +1,3 @@
-from tabnanny import check
 from src.adguard_auditor.core.logger import log
 from src.adguard_auditor.core.config import settings
 from src.adguard_auditor.core.endpoints import endpoints
@@ -32,8 +31,13 @@ class AdGuardController:
             else:
                 attempts = 0
             log.info(f"[check_session][status] -> Create new" if attempts > 0 else f"[check_session][status] -> Fail")
-            return self.check_session(
-                attempts=attempts - 1) if attempts > 0 else f"Error get new session | auto_create is {auto_create}"
+            if attempts > 0:
+                return self.check_session(attempts=attempts - 1, auto_create=auto_create)
+            log.error(f"[check_session] -> Error get new session | auto_create is {auto_create}")
+            return False
+        else:
+            log.error(f"[check_session] -> Unexpected status code: {sc}")
+            return False
 
     def _get_new_session(self):
         pass
