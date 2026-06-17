@@ -1,29 +1,43 @@
+import json
+import asyncio
+from enum import Enum
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Request, Query, HTTPException
-from ....schemas.adguard_models import OptimizedRulesSet
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
+from .... import __version__
+from ....schemas.adguard_models import OptimizedRulesSet
 from ....services import analysis_service, controller, prompt_rules_service
+from ....services.adguard_client import ag_client
+from ....services.cache import audit_cache
 from src.gemini import init as gemini
+from src.vertex_ai import init as vertex_ai
 from ....schemas.storage import *
 from ....schemas.audit import *
+from ....core.config import settings
 from ....core.logger import log
-import asyncio
+
+
+class AuditAction(str, Enum):
+    FULL = "full"
+    FETCH = "fetch"
+    ANALYZE = "analyze"
 
 router = APIRouter()
 templates = Jinja2Templates(directory="src/adguard_auditor/frontend/templates")
 
+_executor = ThreadPoolExecutor(max_workers=2)
+
 
 @router.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
-    pass
-    # Главная страница с кнопкой "Начать анализ"
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {"version": __version__})
 
 
 @router.get("/get-row-request-log")
 def get_row_request_log(limit: int = 100) -> RowData:
     """
-    Return row logs form AdGuard server
+    Return raw logs from the AdGuard server
     :param limit: if 0 - No limit, get data for all of time
     """
     ctrl = controller.DataController()
@@ -33,7 +47,7 @@ def get_row_request_log(limit: int = 100) -> RowData:
 @router.get("/get-response-log")
 def get_response_log(limit: int = 100) -> dict[str, list]:
     """
-    Return clin logs form AdGuard server
+    Return cleaned logs from the AdGuard server
     :param limit: if 0 - No limit, get data for all of time
     """
     ctrl = controller.DataController()
@@ -50,16 +64,19 @@ def filter_data(data: str, model_services: ModelServices = Query(
         "chatgpt": {"value": "chatgpt", "summary": "OpenAI ChatGPT"},
         "qwen": {"value": "qwen", "summary": "Alibaba Qwen"},
     }
-)
-
-                ) -> AnalysisResponse:
+)) -> AnalysisResponse:
     """
-    Return clin logs form AdGuard server
-    :param data: data for analysis witch llm
+    Run LLM analysis on the supplied data.
+    :param data: data to analyze with the LLM
     :param model_services: model name
     """
-    result = gemini.generate(data)
-    # print(json.dumps(result, indent=2, ensure_ascii=False))
+    if model_services == ModelServices.VERTEX_AI:
+        result = vertex_ai.generate(data)
+    else:
+        result = gemini.generate(data)
+
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
     return result
 
 
@@ -75,25 +92,191 @@ def auto_analis(limit: int = 0, user_prompt: str = Query(
         "chatgpt": {"value": "chatgpt", "summary": "OpenAI ChatGPT"},
         "qwen": {"value": "qwen", "summary": "Alibaba Qwen"},
     }
-)
-
-                ) -> AnalysisResponse:
+)) -> AnalysisResponse:
     """
-    Return clin logs form AdGuard server
-    :param data: data for analysis witch llm
+    Fetch logs from AdGuard, clean them and run LLM analysis.
+    :param limit: if 0 - No limit, get data for all of time
+    :param user_prompt: additional user instructions for the LLM
     :param model_services: model name
     """
 
     ctrl = controller.DataController()
     asyncio.run(ctrl.get_data(limit=limit))
-    if ctrl.clean_data():
-        active_rules_text = prompt_rules_service.get_active_rules_text()
-        final_user_prompt = f"{active_rules_text}\n\n{user_prompt}".strip()
-        result = gemini.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
+    if not ctrl.clean_data():
+        raise HTTPException(status_code=400, detail="No data")
+
+    active_rules_text = prompt_rules_service.get_active_rules_text()
+    final_user_prompt = f"{active_rules_text}\n\n{user_prompt}".strip()
+
+    if model_services == ModelServices.VERTEX_AI:
+        result = vertex_ai.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
     else:
-        {"Error": "No data"}
-    # print(json.dumps(result, indent=2, ensure_ascii=False))
+        result = gemini.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
+
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
     return result
+
+
+@router.get("/audit/stream")
+async def audit_stream(
+    limit: int = Query(default=0, description="Log limit (0 = all)"),
+    user_prompt: str = Query(default="", description="Additional user instructions for AI"),
+    model_services: ModelServices = Query(default=ModelServices.GEMINI, description="AI model to use"),
+    action: AuditAction = Query(default=AuditAction.FULL, description="full | fetch | analyze"),
+):
+    """SSE endpoint for real-time audit progress streaming.
+
+    action=full   – fetch + clean + cache + LLM (original behaviour)
+    action=fetch  – fetch + clean + cache, then stop
+    action=analyze – read from cache, run LLM only
+    """
+
+    async def event_generator():
+        loop = asyncio.get_event_loop()
+        cleaned = None
+
+        # ── Steps 1-2 (fetch & clean) — skipped when action=analyze ──
+        if action in (AuditAction.FULL, AuditAction.FETCH):
+            # Step 1: Fetch logs from AdGuard
+            try:
+                ctrl = controller.DataController()
+                step_size = settings.ADGUARD_STEP_REQ
+                total_count = 0
+                iteration = 0
+
+                while True:
+                    iteration += 1
+                    row_data, has_next = await loop.run_in_executor(
+                        _executor,
+                        lambda: ag_client.get_querylog(
+                            limit=step_size,
+                            next=(iteration > 1),
+                        )
+                    )
+
+                    if row_data is False:
+                        yield _sse({"status": "error", "step": "fetch", "message": "Failed to fetch data from AdGuard. Check session."})
+                        return
+
+                    ctrl.data.row_data.extend(row_data)
+                    total_count += len(row_data) if isinstance(row_data, list) else 0
+                    yield _sse({"status": "fetching", "count": total_count})
+
+                    if not has_next or (limit != 0 and limit <= step_size * iteration):
+                        break
+
+                yield _sse({"status": "fetch_done", "count": total_count})
+
+            except Exception as e:
+                log.error(f"[audit/stream] Fetch error: {e}")
+                yield _sse({"status": "error", "step": "fetch", "message": str(e)})
+                return
+
+            # Step 2: Clean and group data
+            try:
+                cleaned = await loop.run_in_executor(_executor, ctrl.clean_data)
+                allowed_count = len(cleaned.get("Allowed", []))
+                blocked_count = len(cleaned.get("Blocked", []))
+                yield _sse({"status": "cleaning", "allowed": allowed_count, "blocked": blocked_count})
+
+                if not cleaned or (allowed_count == 0 and blocked_count == 0):
+                    yield _sse({"status": "error", "step": "clean", "message": "No data to analyze after cleaning."})
+                    return
+
+                # Save to cache
+                audit_cache.store(cleaned, allowed_count, blocked_count)
+
+                yield _sse({
+                    "status": "clean_done",
+                    "allowed": allowed_count,
+                    "blocked": blocked_count,
+                    "model": model_services.value,
+                    "cache": audit_cache.status(),
+                })
+
+            except Exception as e:
+                log.error(f"[audit/stream] Clean error: {e}")
+                yield _sse({"status": "error", "step": "clean", "message": str(e)})
+                return
+
+            # If fetch-only mode, stop here
+            if action == AuditAction.FETCH:
+                yield _sse({"status": "fetch_complete", "cache": audit_cache.status()})
+                return
+
+        # ── Step 3: LLM analysis ──
+        # When action=analyze, read from cache
+        if action == AuditAction.ANALYZE:
+            if not audit_cache.has_data():
+                yield _sse({"status": "error", "step": "llm", "message": "No cached data. Run 'Get AdGuard data' first."})
+                return
+            cleaned = audit_cache.cleaned_data
+            # Show the cached clean step as already done
+            yield _sse({
+                "status": "clean_done",
+                "allowed": audit_cache.allowed_count,
+                "blocked": audit_cache.blocked_count,
+                "model": model_services.value,
+                "from_cache": True,
+            })
+
+        try:
+            active_rules_text = prompt_rules_service.get_active_rules_text()
+            final_prompt = f"{active_rules_text}\n\n{user_prompt}".strip() if user_prompt or active_rules_text else ""
+
+            yield _sse({"status": "llm_thinking", "model": model_services.value})
+
+            if model_services == ModelServices.VERTEX_AI:
+                result = await loop.run_in_executor(
+                    _executor,
+                    lambda: vertex_ai.generate(str(cleaned), user_prompt=final_prompt)
+                )
+            else:
+                result = await loop.run_in_executor(
+                    _executor,
+                    lambda: gemini.generate(str(cleaned), user_prompt=final_prompt)
+                )
+
+            if isinstance(result, dict) and "error" in result:
+                yield _sse({"status": "error", "step": "llm", "message": result["error"]})
+                return
+
+            yield _sse({"status": "complete", "result": result})
+
+        except Exception as e:
+            log.error(f"[audit/stream] LLM error: {e}")
+            yield _sse({"status": "error", "step": "llm", "message": str(e)})
+            return
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/audit/cache")
+def get_audit_cache():
+    """Return the current cache status."""
+    return audit_cache.status()
+
+
+@router.post("/audit/cache/clear")
+def clear_audit_cache():
+    """Clear the cached cleaned data."""
+    audit_cache.clear()
+    return {"status": "cleared"}
+
+
+def _sse(data: dict) -> str:
+    """Format a dict as an SSE 'data:' line."""
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 @router.post("/to_block")

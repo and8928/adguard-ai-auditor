@@ -14,7 +14,7 @@ def configure_logging():
     logger.setLevel(logging.DEBUG if settings.DEBUG_MOD else logging.INFO)
     # logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-    logger.info('logger initialized to console and file')
+    logger.info('logger initialized to console')
     return logger
 
 
@@ -22,4 +22,4 @@ log = configure_logging()
 
 if __name__ == "__main__":
     log.info("Logger configured successfully")
-    log.info("This message should appear in console, file and Seq")
+    log.info("This message should appear in the console")

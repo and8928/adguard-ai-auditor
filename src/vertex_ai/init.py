@@ -1,5 +1,3 @@
-# To run this code you need to install the following dependencies:
-# pip install google-genai
 import json
 import time
 from google import genai
@@ -12,10 +10,11 @@ from src.adguard_auditor.core.logger import log
 
 def generate(log_data: str, user_prompt: str = ""):
     client = genai.Client(
-        api_key=settings.GEMINI_API_KEY,
+        vertexai=True,
+        api_key=settings.VERTEX_AI_API_KEY,
     )
 
-    # Настройка схемы ответа (JSON Schema)
+
     response_schema = genai.types.Schema(
         type=genai.types.Type.OBJECT,
         required=["domains_to_block", "domains_to_unblock", "domains_to_test", "analysis_summary"],
@@ -107,17 +106,17 @@ def generate(log_data: str, user_prompt: str = ""):
 
     max_attempts_per_model = 2
 
-    for model in settings.GEMINI_MODELS_NAME:
-        log.info(f"Trying to use model: {model}...")
+    for model in settings.VERTEX_AI_MODELS_NAME:
+        log.info(f"Trying to use Vertex AI model: {model}...")
         for attempt in range(1, max_attempts_per_model + 1):
             try:
                 result = generate_content(client, contents, generate_content_config, model)
-                log.info(f"Successfully generated response using {model}")
+                log.info(f"Successfully generated response using Vertex AI {model}")
                 return result
 
             except APIError as e:
                 if e.code in [429, 503]:
-                    log.warning(f"Model {model} overloaded (Error {e.code}). Attempt {attempt}/{max_attempts_per_model}.")
+                    log.warning(f"Vertex AI Model {model} overloaded (Error {e.code}). Attempt {attempt}/{max_attempts_per_model}.")
                     if attempt < max_attempts_per_model:
                         time.sleep(10)
                         continue
@@ -125,21 +124,21 @@ def generate(log_data: str, user_prompt: str = ""):
                         log.warning(f"Exhausted attempts for {model}. Switching to next model...")
                         break
                 else:
-                    log.error(f"API Error with model {model}: {e}")
+                    log.error(f"Vertex AI API Error with model {model}: {e}")
                     break
 
             except json.JSONDecodeError as e:
-                log.warning(f"Model {model} returned invalid JSON: {e}. Trying next model...")
+                log.warning(f"Vertex AI Model {model} returned invalid JSON: {e}. Trying next model...")
                 break
             except Exception as e:
-                log.error(f"Network/Unexpected error with model {model}: {e}")
+                log.error(f"Network/Unexpected error with Vertex AI model {model}: {e}")
                 if attempt < max_attempts_per_model:
                     time.sleep(2)
                     continue
                 else:
                     break
-    log.error("All Gemini models failed or rate limited.")
-    return {"error": "All models failed or rate limited. Please try again later."}
+    log.error("All Vertex AI models failed or rate limited.")
+    return {"error": "All Vertex AI models failed or rate limited. Please try again later."}
 
 def generate_content(client: genai.Client, contents: list, generate_content_config: types.GenerateContentConfig, model: str):
     """Stream a single generation from the given model and parse the JSON result."""
@@ -153,23 +152,3 @@ def generate_content(client: genai.Client, contents: list, generate_content_conf
 
     return json.loads(response_text)
 
-
-# if __name__ == "__main__":
-#     # sample
-#     sample_log = """
-#     {
-#       "Allowed": [
-#         {"domain": "blowfish-blocklist-proxy.phantom.app", "filterId": ""},
-#         {"domain": "calendar.google.com", "filterId": ""},
-#         {"domain": "mtalk.google.com", "filterId": ""}
-#       ],
-#       "Blocked": [
-#         {"domain": "mobile.events.data.microsoft.com", "filterId": 1769870455},
-#         {"domain": "client.wns.windows.com", "filterId": 0},
-#         {"domain": "s.youtube.com", "filterId": 1769870455}
-#       ]
-#     }
-#     """
-#
-#     result = generate(sample_log)
-#     print(json.dumps(result, indent=2, ensure_ascii=False))

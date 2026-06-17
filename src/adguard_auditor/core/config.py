@@ -1,5 +1,5 @@
 # Управление конфигурацией (чтение .env)
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from pathlib import Path
 
@@ -18,15 +18,18 @@ class Settings(BaseSettings):
     GEMINI_MODELS_NAME: list
     GEMINI_API_KEY: str
 
+    VERTEX_AI_MODELS_NAME: list = []
+    VERTEX_AI_API_KEY: str = ""
+
     OPENAI_MODEL_NAME: str
     OPENAI_API_KEY: str
 
     DEBUG_MOD: bool = False
 
-    class Config:
-        env_file = os.path.join(BASE_DIR, ".env")
-        print(f"init .env file in: {env_file}")
-        env_file_encoding = 'utf-8'
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(BASE_DIR, ".env"),
+        env_file_encoding='utf-8'
+    )
 
 
 settings = Settings()

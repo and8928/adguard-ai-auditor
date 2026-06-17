@@ -42,7 +42,7 @@ class AdGuardController:
     def _get_new_session(self):
         pass
 
-    def get_querylog(self, limit=settings.ADGUARD_STEP_REQ, next: str = True):
+    def get_querylog(self, limit=settings.ADGUARD_STEP_REQ, next: bool = True):
         if not self.check_session():
             return 'Bad session'
         if next and self.oldest != "":
@@ -68,7 +68,7 @@ class AdGuardController:
         if not self.check_session():
             return 'Bad session'
         url = endpoints.get_url(endpoints.FILTERING)
-        print(f"url = {url}")
+        log.debug(f"[get_actual_filter][url] -> {url}")
         result = requests.get(url=url, cookies={'agh_session': settings.AGH_SESSION})
         log.debug(f"[adguard_client][get_actual_filter][status_code] -> {result.status_code}")
         log.debug(f"[adguard_client][get_actual_filter][text] -> {result.text}")
@@ -78,7 +78,7 @@ class AdGuardController:
         else:
             log.error(f"[get_actual_filter][status_code] -> {result.status_code}")
             self.bad_requests = True
-            return False, False
+            return False
 
     def set_actual_filter(self, raw_rules: list[str]) -> bool:
         """Send an update list of rules"""

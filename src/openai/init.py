@@ -111,9 +111,6 @@ def generate(log_data: str):
 
     for event in stream:
         if event.type == "response.output_text.delta":
-            print(event.delta, end="")
             response_text += event.delta
-
-    print()
 
     return json.loads(response_text)

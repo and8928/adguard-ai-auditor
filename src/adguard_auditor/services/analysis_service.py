@@ -2,8 +2,6 @@ from ..schemas.adguard_models import FilterRule, OptimizedRulesSet, ConflictWarn
 from collections import defaultdict
 
 
-# class AnalysisService:
-
 def get_status(reason):
     # Логика определения: заблокировано или пропущено
     blocked_reasons = ['FilteredBlackList', 'FilteredSafeBrowsing', 'FilteredSafeSearch']
@@ -18,7 +16,6 @@ def clean_and_prepare_logs(row_data):
 
     for entry in row_data:
         domain = entry.get('question', {}).get('name', 'unknown')
-        # print(domain)
         if domain not in filter_result:
             filter_result.add(domain)
             reason = entry.get('reason', '')
@@ -84,7 +81,6 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
 
     clean_rules = {}
     warnings_merged = []
-    # full_domain_list= []
 
     for key, rules_list in grouped.items():
         domain_pattern, modifiers = key
@@ -194,7 +190,6 @@ def apply_forced_domains(
             final_objects.append(parse_rule_filtering(f"@@||{domain}^$important"))
 
     return {
-        # 'rules_objects': final_objects,
         'rules_raw': [r.raw for r in final_objects],
         'removed_conflicts': removed_due_to_conflict
     }
@@ -203,7 +198,7 @@ def apply_forced_domains(
 def apply_blocks_to_rules(optimized_rules, domains_to_block: list[str]) -> tuple[list[str], dict]:
     """
     Applies blocking to the current ruleset.
-    Return the raw releset for sending and stats.
+    Returns the raw ruleset to send, plus stats.
     """
     stats = {"added": 0, "overwritten_exceptions": 0, "already_blocked": 0}
 

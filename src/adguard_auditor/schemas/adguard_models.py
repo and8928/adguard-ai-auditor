@@ -1,7 +1,5 @@
-import re
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
-from typing import Optional
 
 @dataclass
 class FilterRule:

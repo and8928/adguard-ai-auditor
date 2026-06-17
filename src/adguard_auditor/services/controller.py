@@ -21,8 +21,8 @@ class DataController:
             row_data, nest_stat = ag_client.get_querylog(next = False if i == 1 else True)
             log.debug(f"[get_data][row_data] -> {row_data}")
             log.debug(f"[get_data][nest_stat] -> {nest_stat}")
-            if row_data == False:
-                log.error(f"[get_data] -> !!! ERROR ag_client.get_data return False !!!")
+            if row_data is False:
+                log.error("[get_data] -> !!! ERROR ag_client.get_data returned False !!!")
                 return False
             self.data.row_data.extend(row_data)
             if not nest_stat or (limit != 0 and limit <= step*i):
