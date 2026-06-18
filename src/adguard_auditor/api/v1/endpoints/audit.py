@@ -34,8 +34,8 @@ async def get_index(request: Request):
     return templates.TemplateResponse(request, "index.html", {"version": __version__})
 
 
-@router.get("/get-row-request-log")
-def get_row_request_log(limit: int = 100) -> RowData:
+@router.get("/get-raw-request-log")
+def get_raw_request_log(limit: int = 100) -> RowData:
     """
     Return raw logs from the AdGuard server
     :param limit: if 0 - No limit, get data for all of time
