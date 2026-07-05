@@ -83,7 +83,7 @@ ADGUARD_BASE_URL="http://192.168.1.1"
 ADGUARD_PORT=3333
 ADGUARD_USER="your_user"
 ADGUARD_PASSWORD="your_password"
-AGH_SESSION="your_session"
+AGH_SESSION="don't_touch"
 ADGUARD_STEP_REQ=100
 
 # Google Gemini Settings (optional)
@@ -108,9 +108,6 @@ DEEPSEEK_THINKING_ENABLED = True
 # Set to True for verbose debug logging
 DEBUG_MOD = False
 ```
-
-> [!NOTE]
-> Automatic session retrieval is still under development, so for now you must manually specify the `AGH_SESSION` cookie from your browser.
 
 ### 4. Run the application
 ```bash
@@ -202,8 +199,8 @@ src/
 
 ### 🤖 AI & Prompt Engineering
 - [x] **Custom prompt rules**: Enhance system prompts with user-specific rules (e.g., override "Windows system widgets" as ads instead of required content).
-- [ ] **Local AI**: Add support for running local LLM models (e.g., via Ollama or LM Studio).
-- [ ] **API integrations**: Integrate the Qwen API and improve OpenAI integration stability.
+- [ ] **Local AI**: Add Unsloth integration.
+- [ ] **API integrations**: Add OpenAI integration.
 
 ### 📊 Analysis & Filtering
 - [ ] **Resource categorization**:
@@ -212,16 +209,15 @@ src/
   - [ ] Resources that work but shouldn't (false positives).
   - [ ] Resources that should be blocked (missed trackers/ads).
   - [ ] Ads detected on specific services.
-- [x] **Filter management**: Read current user filters (`get_actual_filter`) and manage them from the dashboard — search, filter by type, switch a rule's type, or delete it (`to_delete`).
-
-### 🔐 Authentication
-- [ ] **Auto auth**: Implement automatic authorization in AdGuard Home (`_get_new_session`).
 
 ### 🎨 Frontend
-- [x] **Filter rule manager**: Always-available Current Rules card with live search, type filtering, inline type switching, and rule deletion.
 - [ ] **Settings panel**: Move language and AdGuard login/password into a dedicated Settings section.
 - [ ] **Interactive Test tab**: Send "requires verification" domains to block/unblock/ignore directly.
+- [x] **Filter rule manager**: Always-available Current Rules card with live search, type filtering, inline type switching, and rule deletion.
 - [x] **UI improvements**: Currently focusing on FastAPI backend functionality; the frontend interface is under active development.
+
+### 🔐 Authentication
+- [x] **Auto auth**: Automatic authorization in AdGuard Home (`_get_new_session`).
 
 ---
 
