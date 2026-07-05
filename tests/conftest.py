@@ -4,6 +4,7 @@ Environment variables are set BEFORE any project code is imported,
 because `settings = Settings()` runs at import time in config.py.
 """
 import os
+
 import pytest
 
 # Set test environment variables before any src imports
@@ -38,7 +39,7 @@ def sample_querylog_entries():
         {"question": {"name": "cdn.jsdelivr.net"}, "reason": "NotFilteredNotFound", "filterId": ""},
         {"question": {"name": "ads.doubleclick.net"}, "reason": "FilteredBlackList", "filterId": 123},
         {"question": {"name": "telemetry.microsoft.com"}, "reason": "FilteredBlackList", "filterId": 456},
-        # Duplicate — should be filtered out
+        # Duplicate - should be filtered out
         {"question": {"name": "analytics.google.com"}, "reason": "NotFilteredNotFound", "filterId": ""},
     ]
 

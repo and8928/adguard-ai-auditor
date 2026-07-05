@@ -1,14 +1,13 @@
 """
-Unit tests for prompt_rules_service.py — CRUD operations and validation.
+Unit tests for prompt_rules_service.py - CRUD operations and validation.
 Uses a temporary file instead of overwriting the real data/prompt_rules.json.
 """
-import json
-import pytest
 from unittest.mock import patch
-from pathlib import Path
 
-from src.adguard_auditor.services import prompt_rules_service
+import pytest
+
 from src.adguard_auditor.schemas.prompt_rules import PromptRuleCreate, PromptRuleUpdate
+from src.adguard_auditor.services import prompt_rules_service
 
 
 @pytest.fixture(autouse=True)
@@ -17,8 +16,6 @@ def use_temp_rules_file(tmp_path):
     temp_file = tmp_path / "prompt_rules.json"
     with patch.object(prompt_rules_service, "RULES_FILE", temp_file):
         yield temp_file
-
-
 
 
 class TestCreateRule:
@@ -40,8 +37,6 @@ class TestCreateRule:
         assert fetched.name == "Persisted"
 
 
-
-
 class TestGetAndListRules:
     def test_get_nonexistent_returns_none(self):
         result = prompt_rules_service.get_rule("nonexistent-id")
@@ -56,8 +51,6 @@ class TestGetAndListRules:
         prompt_rules_service.create_rule(PromptRuleCreate(name="Rule B", text="Text B text"))
         rules = prompt_rules_service.list_rules()
         assert len(rules) == 2
-
-
 
 
 class TestUpdateRule:
@@ -97,8 +90,6 @@ class TestUpdateRule:
         assert updated.updated_at is not None
 
 
-
-
 class TestDeleteRule:
     def test_delete_existing(self):
         rule = prompt_rules_service.create_rule(
@@ -109,8 +100,6 @@ class TestDeleteRule:
 
     def test_delete_nonexistent(self):
         assert prompt_rules_service.delete_rule("no-such-id") is False
-
-
 
 
 class TestGetActiveRulesText:
@@ -138,8 +127,6 @@ class TestGetActiveRulesText:
         text = prompt_rules_service.get_active_rules_text()
         assert "First rule text" in text
         assert "Second rule text" in text
-
-
 
 
 class TestPromptRuleValidation:

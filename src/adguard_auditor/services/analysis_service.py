@@ -1,5 +1,6 @@
-from ..schemas.adguard_models import FilterRule, OptimizedRulesSet, ConflictWarning, FilterStats
 from collections import defaultdict
+
+from ..schemas.adguard_models import FilterRule, OptimizedRulesSet, ConflictWarning, FilterStats
 
 
 def get_status(reason):
@@ -23,6 +24,7 @@ def clean_and_prepare_logs(row_data):
             status = get_status(reason)
             results[status].append({'domain': domain, 'filterId': filterId})
     return results
+
 
 def parse_rule_filtering(rule: str) -> FilterRule:
     """Breaks down a single rule into its components"""
@@ -93,25 +95,25 @@ def optimize_filtering_rules(rules: list[str]) -> dict:
 
         if blocks and not exceptions:
             winner = next(b for b in blocks if (1 if b.is_important else 0) == max_block_pri)
-            clean_rules[winner.domain]= winner
+            clean_rules[winner.domain] = winner
             continue
 
         if exceptions and not blocks:
             winner = next(e for e in exceptions if (1 if e.is_important else 0) == max_exc_pri)
-            clean_rules[winner.domain]= winner
+            clean_rules[winner.domain] = winner
             continue
 
         if max_block_pri > max_exc_pri:
             winner = next(b for b in blocks if b.is_important)
-            clean_rules[winner.domain]= winner
+            clean_rules[winner.domain] = winner
 
         elif max_exc_pri > max_block_pri:
             winner = next(e for e in exceptions if e.is_important)
-            clean_rules[winner.domain]= winner
+            clean_rules[winner.domain] = winner
 
         else:
             winner = next(b for b in blocks if (1 if b.is_important else 0) == max_block_pri)
-            clean_rules[winner.domain]= winner
+            clean_rules[winner.domain] = winner
 
             warnings_merged.append({
                 'domain': winner.domain,
@@ -216,6 +218,27 @@ def apply_blocks_to_rules(optimized_rules, domains_to_block: list[str]) -> tuple
             raw_rule = f"||{domain}^"
             optimized_rules.clean_rules_objects[domain] = parse_rule_filtering(raw_rule)
             stats["added"] += 1
+
+    final_raw_rules = [r.raw for r in optimized_rules.clean_rules_objects.values()]
+    final_raw_rules.extend(optimized_rules.invalid_rules)
+
+    return final_raw_rules, stats
+
+
+def apply_delete_to_rules(optimized_rules, domains_to_delete: list[str]) -> tuple[list[str], dict]:
+    """
+    Removes the rules for the given domains entirely from the ruleset.
+    Used for manual rule deletion from the Current Rules view.
+    """
+    stats = {"deleted": 0, "not_found": 0}
+
+    for domain in domains_to_delete:
+        cleaned_domain = domain.strip().replace('||', '').replace('@@', '').replace('^', '')
+        if cleaned_domain in optimized_rules.clean_rules_objects:
+            del optimized_rules.clean_rules_objects[cleaned_domain]
+            stats["deleted"] += 1
+        else:
+            stats["not_found"] += 1
 
     final_raw_rules = [r.raw for r in optimized_rules.clean_rules_objects.values()]
     final_raw_rules.extend(optimized_rules.invalid_rules)

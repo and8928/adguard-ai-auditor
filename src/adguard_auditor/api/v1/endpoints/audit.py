@@ -1,27 +1,29 @@
-import json
 import asyncio
-from enum import Enum
+import json
 from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import APIRouter, Request, Query, HTTPException
-from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
+
+from src.gemini import init as gemini
+from src.vertex_ai import init as vertex_ai
 from .... import __version__
+from ....core.config import settings
+from ....core.logger import log
 from ....schemas.adguard_models import OptimizedRulesSet
+from ....schemas.audit import *
+from ....schemas.storage import *
 from ....services import analysis_service, controller, prompt_rules_service
 from ....services.adguard_client import ag_client
 from ....services.cache import audit_cache
-from src.gemini import init as gemini
-from src.vertex_ai import init as vertex_ai
-from ....schemas.storage import *
-from ....schemas.audit import *
-from ....core.config import settings
-from ....core.logger import log
 
 
 class AuditAction(str, Enum):
     FULL = "full"
     FETCH = "fetch"
     ANALYZE = "analyze"
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="src/adguard_auditor/frontend/templates")
@@ -121,10 +123,10 @@ def auto_analis(limit: int = 0, user_prompt: str = Query(
 
 @router.get("/audit/stream")
 async def audit_stream(
-    limit: int = Query(default=0, description="Log limit (0 = all)"),
-    user_prompt: str = Query(default="", description="Additional user instructions for AI"),
-    model_services: ModelServices = Query(default=ModelServices.GEMINI, description="AI model to use"),
-    action: AuditAction = Query(default=AuditAction.FULL, description="full | fetch | analyze"),
+        limit: int = Query(default=0, description="Log limit (0 = all)"),
+        user_prompt: str = Query(default="", description="Additional user instructions for AI"),
+        model_services: ModelServices = Query(default=ModelServices.GEMINI, description="AI model to use"),
+        action: AuditAction = Query(default=AuditAction.FULL, description="full | fetch | analyze"),
 ):
     """SSE endpoint for real-time audit progress streaming.
 
@@ -137,7 +139,7 @@ async def audit_stream(
         loop = asyncio.get_event_loop()
         cleaned = None
 
-        # ── Steps 1-2 (fetch & clean) — skipped when action=analyze ──
+        # ── Steps 1-2 (fetch & clean) - skipped when action=analyze ──
         if action in (AuditAction.FULL, AuditAction.FETCH):
             # Step 1: Fetch logs from AdGuard
             try:
@@ -157,7 +159,8 @@ async def audit_stream(
                     )
 
                     if row_data is False:
-                        yield _sse({"status": "error", "step": "fetch", "message": "Failed to fetch data from AdGuard. Check session."})
+                        yield _sse({"status": "error", "step": "fetch",
+                                    "message": "Failed to fetch data from AdGuard. Check session."})
                         return
 
                     ctrl.data.row_data.extend(row_data)
@@ -210,7 +213,8 @@ async def audit_stream(
         # When action=analyze, read from cache
         if action == AuditAction.ANALYZE:
             if not audit_cache.has_data():
-                yield _sse({"status": "error", "step": "llm", "message": "No cached data. Run 'Get AdGuard data' first."})
+                yield _sse(
+                    {"status": "error", "step": "llm", "message": "No cached data. Run 'Get AdGuard data' first."})
                 return
             cleaned = audit_cache.cleaned_data
             # Show the cached clean step as already done
@@ -322,6 +326,27 @@ def to_unblock(data: BlockRequest):
         "action": "unblock",
         "stats": stats,
         "message": f"Successfully processed {len(domains_list)} domains."
+    }
+
+
+@router.post("/to_delete")
+def to_delete(data: DomainNamesRequest):
+    """Delete selected user rules entirely (manual action from Current Rules)."""
+    ctrl = controller.DataController()
+    optimized_rules = ctrl.get_actual_filter()
+
+    final_raw_rules, stats = analysis_service.apply_delete_to_rules(optimized_rules, data.domains)
+
+    success = ctrl.set_actual_filter(final_raw_rules)
+
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to save rules in AdGuard")
+
+    return {
+        "status": "success",
+        "action": "delete",
+        "stats": stats,
+        "message": f"Deleted {stats['deleted']} rule(s)."
     }
 
 

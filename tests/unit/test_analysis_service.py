@@ -1,7 +1,8 @@
 """
-Unit tests for analysis_service.py — rule parsing, optimization, and log cleaning.
+Unit tests for analysis_service.py - rule parsing, optimization, and log cleaning.
 """
 import pytest
+
 from src.adguard_auditor.services.analysis_service import (
     parse_rule_filtering,
     optimize_filtering_rules,
@@ -11,8 +12,6 @@ from src.adguard_auditor.services.analysis_service import (
     apply_unblocks_to_rules,
     apply_forced_domains,
 )
-
-
 
 
 class TestGetStatus:
@@ -25,8 +24,6 @@ class TestGetStatus:
         assert get_status("NotFilteredNotFound") == "Allowed"
         assert get_status("NotFilteredWhiteList") == "Allowed"
         assert get_status("") == "Allowed"
-
-
 
 
 class TestCleanAndPrepareLogs:
@@ -50,8 +47,6 @@ class TestCleanAndPrepareLogs:
     def test_empty_input(self):
         result = clean_and_prepare_logs([])
         assert result == {"Allowed": [], "Blocked": []}
-
-
 
 
 class TestParseRuleFiltering:
@@ -108,8 +103,6 @@ class TestParseRuleFiltering:
         assert rule.raw == raw.strip()
 
 
-
-
 class TestOptimizeFilteringRules:
     def test_removes_duplicates(self):
         rules = ["||example.com^", "||example.com^"]
@@ -130,7 +123,7 @@ class TestOptimizeFilteringRules:
         rules = ["||example.com^$important", "@@||example.com^"]
         result = optimize_filtering_rules(rules)
         # Both are valid and processed, but output dict is keyed by domain,
-        # so only one survives — this documents the current behavior
+        # so only one survives - this documents the current behavior
         assert result.stats.total_clean == 1
 
     def test_equal_power_conflict_generates_warning(self):
@@ -149,8 +142,6 @@ class TestOptimizeFilteringRules:
         result = optimize_filtering_rules(sample_filter_rules)
         assert result.stats.total_input_lines == len(sample_filter_rules)
         assert result.stats.total_clean <= result.stats.valid_processed
-
-
 
 
 class TestApplyBlocksToRules:
@@ -187,8 +178,6 @@ class TestApplyUnblocksToRules:
         optimized = optimize_filtering_rules(["@@||already.com^"])
         rules, stats = apply_unblocks_to_rules(optimized, ["already.com"])
         assert stats["already_unblocked"] == 1
-
-
 
 
 class TestApplyForcedDomains:

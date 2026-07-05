@@ -1,13 +1,11 @@
 """
-Integration tests for Gemini LLM client — retry logic and model fallback.
+Integration tests for Gemini LLM client - retry logic and model fallback.
 All actual API calls are mocked.
 """
 import json
-import pytest
 from unittest.mock import patch, MagicMock
+
 from google.genai.errors import APIError
-
-
 
 
 class TestGeminiGenerate:
@@ -49,8 +47,6 @@ class TestGeminiGenerate:
 
         result = generate('{"Allowed": [], "Blocked": []}')
         assert "error" in result
-
-
 
 
 class TestGeminiRetryLogic:
@@ -111,8 +107,6 @@ class TestGeminiRetryLogic:
             assert result["analysis_summary"] == "Fallback OK"
 
 
-
-
 class TestGeminiPromptInjection:
     @patch("src.gemini.init.genai.Client")
     def test_user_prompt_included_in_system_instruction(self, MockClient):
@@ -156,7 +150,7 @@ class TestGeminiPromptInjection:
         mock_client.models.generate_content_stream.return_value = [chunk]
 
         result = generate('{"Allowed": []}', user_prompt="")
-        
+
         call_kwargs = mock_client.models.generate_content_stream.call_args
         config = call_kwargs.kwargs.get("config") or call_kwargs[1].get("config")
         system_text = config.system_instruction[0].text

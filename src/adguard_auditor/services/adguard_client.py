@@ -1,9 +1,11 @@
-from src.adguard_auditor.core.logger import log
+import json
+from time import time
+
+import requests
+
 from src.adguard_auditor.core.config import settings
 from src.adguard_auditor.core.endpoints import endpoints
-from time import time
-import requests
-import json
+from src.adguard_auditor.core.logger import log
 
 
 class AdGuardController:
@@ -46,7 +48,7 @@ class AdGuardController:
         if not self.check_session():
             return 'Bad session'
         if next and self.oldest != "":
-            oldest = f"&older_than={self.oldest}"
+            oldest = f"&older_than={self.oldest.replace('+', '%2B')}"
         else:
             oldest = ''
         url = endpoints.get_url(endpoints.QUERYLOG, limit=limit, oldest=oldest)

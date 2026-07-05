@@ -1,6 +1,6 @@
 """AdGuard AI Auditor package.
 
-The version is sourced from a single place — ``pyproject.toml`` — so it only
+The version is sourced from a single place - ``pyproject.toml`` - so it only
 ever has to be bumped there. It is exposed as ``__version__`` and reused by the
 FastAPI app and the web dashboard.
 """

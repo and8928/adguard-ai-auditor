@@ -1,24 +1,19 @@
 """
-Unit tests for adguard_client.py — session management and HTTP interactions.
+Unit tests for adguard_client.py - session management and HTTP interactions.
 Uses the `responses` library to mock all HTTP requests to AdGuard Home.
 """
-import json
-import pytest
-import responses
-from unittest.mock import patch
 from time import time
+from unittest.mock import patch
 
-from src.adguard_auditor.services.adguard_client import AdGuardController
-from src.adguard_auditor.core.config import settings
+import responses
+
 from src.adguard_auditor.core.endpoints import endpoints
-
+from src.adguard_auditor.services.adguard_client import AdGuardController
 
 PROFILE_URL = endpoints.get_url(endpoints.PROFILE)
 QUERYLOG_URL_PREFIX = f"{endpoints.url}/querylog"
 FILTERING_URL = endpoints.get_url(endpoints.FILTERING)
 SET_FILTERING_URL = endpoints.get_url(endpoints.SET_FILTERING)
-
-
 
 
 class TestCheckSession:
@@ -34,7 +29,7 @@ class TestCheckSession:
             session_last_check=int(time()),  # Fresh check
             bad_requests=False,
         )
-        # No HTTP mock needed — should not make a request
+        # No HTTP mock needed - should not make a request
         assert ctrl.check_session() is True
 
     @responses.activate
@@ -91,8 +86,6 @@ class TestCheckSession:
         assert ctrl.session_last_check >= before
 
 
-
-
 class TestGetQuerylog:
     @responses.activate
     def test_returns_bad_session_on_failed_check(self):
@@ -137,8 +130,6 @@ class TestGetQuerylog:
         assert data is False
         assert has_more is False
         assert ctrl.bad_requests is True
-
-
 
 
 class TestGetActualFilter:

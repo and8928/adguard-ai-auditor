@@ -1,314 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AdGuard AI Auditor — AI-powered DNS log analyzer and filter manager">
-  <title>AdGuard AI Auditor</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AdGuard AI Auditor - AI-powered DNS log analyzer and filter manager">
+    <title>AdGuard AI Auditor</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon"
+          href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 </head>
 <body>
 
 <div class="app-layout">
 
-  <!-- =========== SIDEBAR =========== -->
-  <aside class="sidebar" id="sidebar">
+    <!-- =========== SIDEBAR =========== -->
+    <aside class="sidebar" id="sidebar">
 
-    <!-- Logo -->
-    <div class="sidebar-logo">
-      <div class="logo-icon">🛡️</div>
-      <h1 data-i18n="sidebar.title">AdGuard AI Auditor</h1>
-      <span class="version">v{{ version }}</span>
-    </div>
-
-    <!-- Audit Settings Card -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-icon">⚙️</span>
-        <h2 data-i18n="sidebar.settings">Analysis Settings</h2>
-      </div>
-      <div class="card-body">
-        <div class="form-group">
-          <label class="form-label" for="sel-model" data-i18n="settings.model">AI Model</label>
-          <select class="form-select" id="sel-model">
-            <option value="gemini" selected>Google Gemini</option>
-            <option value="chatgpt">OpenAI ChatGPT</option>
-            <option value="qwen">Alibaba Qwen</option>
-            <option value="vertex_ai">Google Cloud Vertex AI</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="sel-limit" data-i18n="settings.limit">Log Limit</label>
-          <select class="form-select" id="sel-limit">
-            <option value="100" data-i18n="limit.100">100 records</option>
-            <option value="200" data-i18n="limit.200">200 records</option>
-            <option value="500" data-i18n="limit.500">500 records</option>
-            <option value="0" selected data-i18n="limit.0">All records</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="input-user-prompt" data-i18n="settings.prompt">Additional AI Instructions</label>
-          <textarea class="form-input" id="input-user-prompt" rows="3"
-                    data-i18n-placeholder="placeholder.prompt" placeholder="E.g.: wbsg8v.xyz is my domain, do not block"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- Prompt Rules Card -->
-    <div class="card" style="flex:1; display:flex; flex-direction:column;">
-      <div class="card-header" style="justify-content: space-between;">
-        <div class="flex items-center gap-8">
-          <span class="card-icon">📝</span>
-          <h2 data-i18n="sidebar.rules">AI Rules</h2>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="btn-add-rule" data-i18n-title="btn.add_rule_title" title="Add Rule"><span data-i18n="btn.add_rule">＋</span></button>
-      </div>
-      <div class="card-body" style="flex:1; overflow-y:auto;">
-        <div class="rules-list" id="rules-list">
-          <div class="rules-empty" data-i18n="filters.loading">Loading...</div>
-        </div>
-      </div>
-    </div>
-
-  </aside>
-
-
-  <!-- =========== MAIN CONTENT =========== -->
-  <main class="main-content">
-
-    <!-- Header row -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h2 style="font-size:1.3rem; font-weight:700; letter-spacing:-0.02em;" data-i18n="main.title">Audit Dashboard</h2>
-        <p style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;" data-i18n="main.subtitle">Intelligent DNS Log Analysis for AdGuard Home</p>
-      </div>
-      
-      <div class="flex items-center gap-8">
-        <!-- Language Switcher -->
-        <div class="lang-switcher">
-          <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
-          <button class="lang-btn" data-lang="ru" onclick="setLanguage('ru')">RU</button>
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <div class="logo-icon">🛡️</div>
+            <h1 data-i18n="sidebar.title">AdGuard AI Auditor</h1>
+            <span class="version">v{{ version }}</span>
         </div>
 
-        <div class="action-btns">
-          <button class="btn btn-primary" id="btn-run-audit">
-            🚀 <span data-i18n="btn.run_audit">Run Audit</span>
-          </button>
-          <button class="btn btn-outline" id="btn-fetch-data">
-            📡 <span data-i18n="btn.fetch_data">Get AdGuard Data</span>
-          </button>
-          <button class="btn btn-outline" id="btn-run-analysis" disabled>
-            🧠 <span data-i18n="btn.run_analysis">Run Analysis</span>
-          </button>
+        <!-- Audit Settings Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-icon">⚙️</span>
+                <h2 data-i18n="sidebar.settings">Analysis Settings</h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label" for="sel-model" data-i18n="settings.model">AI Model</label>
+                    <select class="form-select" id="sel-model">
+                        <option value="gemini" selected>Google Gemini</option>
+                        <option value="chatgpt">OpenAI ChatGPT</option>
+                        <option value="qwen">Alibaba Qwen</option>
+                        <option value="vertex_ai">Google Cloud Vertex AI</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="sel-limit" data-i18n="settings.limit">Log Limit</label>
+                    <select class="form-select" id="sel-limit">
+                        <option value="100" data-i18n="limit.100">100 records</option>
+                        <option value="200" data-i18n="limit.200">200 records</option>
+                        <option value="500" data-i18n="limit.500">500 records</option>
+                        <option value="0" selected data-i18n="limit.0">All records</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="input-user-prompt" data-i18n="settings.prompt">Additional AI
+                        Instructions</label>
+                    <textarea class="form-input" id="input-user-prompt" rows="3"
+                              data-i18n-placeholder="placeholder.prompt"
+                              placeholder="E.g.: wbsg8v.xyz is my domain, do not block"></textarea>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Stepper Card -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-icon">📊</span>
-        <h2 data-i18n="stepper.title">Analysis Progress</h2>
-      </div>
-      <div class="card-body">
-        <div class="stepper">
-          <div class="step" id="step-fetch">
-            <span class="step-label" data-i18n="step.fetch">Fetch logs from AdGuard</span>
-            <span class="step-detail"></span>
-          </div>
-          <div class="step" id="step-clean">
-            <span class="step-label" data-i18n="step.clean">Clean &amp; group data</span>
-            <span class="step-detail"></span>
-            <span class="cache-info hidden" id="cache-info">
+        <!-- Prompt Rules Card -->
+        <div class="card" style="flex:1; display:flex; flex-direction:column;">
+            <div class="card-header" style="justify-content: space-between;">
+                <div class="flex items-center gap-8">
+                    <span class="card-icon">📝</span>
+                    <h2 data-i18n="sidebar.rules">AI Rules</h2>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="btn-add-rule" data-i18n-title="btn.add_rule_title"
+                        title="Add Rule"><span data-i18n="btn.add_rule">＋</span></button>
+            </div>
+            <div class="card-body" style="flex:1; overflow-y:auto;">
+                <div class="rules-list" id="rules-list">
+                    <div class="rules-empty" data-i18n="filters.loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+    </aside>
+
+
+    <!-- =========== MAIN CONTENT =========== -->
+    <main class="main-content">
+
+        <!-- Header row -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 style="font-size:1.3rem; font-weight:700; letter-spacing:-0.02em;" data-i18n="main.title">Audit
+                    Dashboard</h2>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin-top:4px;" data-i18n="main.subtitle">
+                    Intelligent DNS Log Analysis for AdGuard Home</p>
+            </div>
+
+            <div class="flex items-center gap-8">
+                <!-- Language Switcher -->
+                <div class="lang-switcher">
+                    <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
+                    <button class="lang-btn" data-lang="ru" onclick="setLanguage('ru')">RU</button>
+                </div>
+
+                <div class="action-btns">
+                    <button class="btn btn-primary" id="btn-run-audit">
+                        🚀 <span data-i18n="btn.run_audit">Run Audit</span>
+                    </button>
+                    <button class="btn btn-outline" id="btn-fetch-data">
+                        📡 <span data-i18n="btn.fetch_data">Get AdGuard Data</span>
+                    </button>
+                    <button class="btn btn-outline" id="btn-run-analysis" disabled>
+                        🧠 <span data-i18n="btn.run_analysis">Run Analysis</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stepper Card -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-icon">📊</span>
+                <h2 data-i18n="stepper.title">Analysis Progress</h2>
+            </div>
+            <div class="card-body">
+                <div class="stepper">
+                    <div class="step" id="step-fetch">
+                        <span class="step-label" data-i18n="step.fetch">Fetch logs from AdGuard</span>
+                        <span class="step-detail"></span>
+                    </div>
+                    <div class="step" id="step-clean">
+                        <span class="step-label" data-i18n="step.clean">Clean &amp; group data</span>
+                        <span class="step-detail"></span>
+                        <span class="cache-info hidden" id="cache-info">
               <span class="cache-badge" id="cache-badge"></span>
               <button class="btn-icon" id="btn-clear-cache" title="Clear cache" onclick="clearCache()">🗑️</button>
             </span>
-          </div>
-          <div class="step" id="step-llm">
-            <span class="step-label" data-i18n="step.llm">Data analysis</span>
-            <span class="step-detail"></span>
-          </div>
-          <div class="step" id="step-result">
-            <span class="step-label" data-i18n="step.result">Result</span>
-            <span class="step-detail"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stats Row -->
-    <div class="stats-row hidden" id="stats-row">
-      <div class="stat-badge block-stat">
-        <div>
-          <div class="stat-value" id="stat-block">0</div>
-          <div class="stat-label" data-i18n="stat.block">Block</div>
-        </div>
-      </div>
-      <div class="stat-badge unblock-stat">
-        <div>
-          <div class="stat-value" id="stat-unblock">0</div>
-          <div class="stat-label" data-i18n="stat.unblock">Unblock</div>
-        </div>
-      </div>
-      <div class="stat-badge test-stat">
-        <div>
-          <div class="stat-value" id="stat-test">0</div>
-          <div class="stat-label" data-i18n="stat.test">Test</div>
-        </div>
-      </div>
-      <div class="stat-badge total-stat">
-        <div>
-          <div class="stat-value" id="stat-total">0</div>
-          <div class="stat-label" data-i18n="stat.total">Total</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Results Section -->
-    <div class="card hidden" id="results-section">
-      <div class="card-header" style="justify-content:space-between;">
-        <div class="flex items-center gap-8">
-          <span class="card-icon">📋</span>
-          <h2 data-i18n="results.title">Analysis Results</h2>
-        </div>
-        <button class="btn btn-success btn-sm" id="btn-apply-changes" data-i18n="btn.apply_changes">
-          ✅ Apply selected changes
-        </button>
-      </div>
-
-      <!-- Tabs -->
-      <div style="padding: 8px 20px 0;">
-        <div class="tabs-nav">
-          <button class="tab-btn active" data-tab="block"><span data-i18n="tab.block">🛑 Block</span> <span class="tab-count" id="count-block">0</span></button>
-          <button class="tab-btn" data-tab="unblock"><span data-i18n="tab.unblock">🟢 Unblock</span> <span class="tab-count" id="count-unblock">0</span></button>
-          <button class="tab-btn" data-tab="test"><span data-i18n="tab.test">⚠️ Test</span> <span class="tab-count" id="count-test">0</span></button>
-          <button class="tab-btn" data-tab="summary" data-i18n="tab.summary">📋 Summary</button>
-          <button class="tab-btn" data-tab="filters" onclick="loadCurrentFilters()" data-i18n="tab.filters">🌐 Current Rules</button>
-        </div>
-      </div>
-
-      <!-- Tab Panels -->
-      <div class="card-body">
-
-        <!-- Block Tab -->
-        <div class="tab-panel active" id="tab-block">
-          <div class="select-all-row">
-            <input type="checkbox" class="custom-check" id="select-all-block" checked>
-            <label for="select-all-block" data-i18n="label.select_all">Select all</label>
-          </div>
-          <div style="max-height:400px; overflow-y:auto;">
-            <table class="results-table">
-              <thead>
-                <tr>
-                  <th style="width:36px;"></th>
-                  <th data-i18n="table.domain">Domain</th>
-                  <th data-i18n="table.reason">Reason</th>
-                  <th data-i18n="table.confidence">Confidence</th>
-                </tr>
-              </thead>
-              <tbody id="results-block-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Unblock Tab -->
-        <div class="tab-panel" id="tab-unblock">
-          <div class="select-all-row">
-            <input type="checkbox" class="custom-check" id="select-all-unblock" checked>
-            <label for="select-all-unblock" data-i18n="label.select_all">Select all</label>
-          </div>
-          <div style="max-height:400px; overflow-y:auto;">
-            <table class="results-table">
-              <thead>
-                <tr>
-                  <th style="width:36px;"></th>
-                  <th data-i18n="table.domain">Domain</th>
-                  <th data-i18n="table.reason">Reason</th>
-                  <th data-i18n="table.confidence">Confidence</th>
-                </tr>
-              </thead>
-              <tbody id="results-unblock-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Test Tab -->
-        <div class="tab-panel" id="tab-test">
-          <div style="max-height:400px; overflow-y:auto;">
-            <table class="results-table">
-              <thead>
-                <tr>
-                  <th data-i18n="table.domain">Domain</th>
-                  <th data-i18n="table.reason">Reason</th>
-                </tr>
-              </thead>
-              <tbody id="results-test-body"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Summary Tab -->
-        <div class="tab-panel" id="tab-summary">
-          <div class="summary-text" id="summary-content" data-i18n="summary.placeholder">
-            The analysis summary will be displayed here after completion.
-          </div>
-        </div>
-
-        <!-- Current Filters Tab -->
-        <div class="tab-panel" id="tab-filters">
-          <div id="filters-content">
-            <div class="empty-state">
-              <div class="empty-icon">🌐</div>
-              <div class="empty-title" data-i18n="tab.filters">Current Rules</div>
-              <div class="empty-desc" data-i18n="empty.filters">Click the tab to load current active filter rules.</div>
+                    </div>
+                    <div class="step" id="step-llm">
+                        <span class="step-label" data-i18n="step.llm">Data analysis</span>
+                        <span class="step-detail"></span>
+                    </div>
+                    <div class="step" id="step-result">
+                        <span class="step-label" data-i18n="step.result">Result</span>
+                        <span class="step-detail"></span>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
-      </div>
-    </div>
+        <!-- Stats Row -->
+        <div class="stats-row hidden" id="stats-row">
+            <div class="stat-badge block-stat">
+                <div>
+                    <div class="stat-value" id="stat-block">0</div>
+                    <div class="stat-label" data-i18n="stat.block">Block</div>
+                </div>
+            </div>
+            <div class="stat-badge unblock-stat">
+                <div>
+                    <div class="stat-value" id="stat-unblock">0</div>
+                    <div class="stat-label" data-i18n="stat.unblock">Unblock</div>
+                </div>
+            </div>
+            <div class="stat-badge test-stat">
+                <div>
+                    <div class="stat-value" id="stat-test">0</div>
+                    <div class="stat-label" data-i18n="stat.test">Test</div>
+                </div>
+            </div>
+            <div class="stat-badge total-stat">
+                <div>
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label" data-i18n="stat.total">Total</div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Empty state when no results -->
-    <div id="empty-results">
-      <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-title" data-i18n="empty.no_results">Ready to work</div>
-        <div class="empty-desc" data-i18n="empty.no_results_desc">Configure the settings in the sidebar and click "Run Audit" to start DNS log analysis.</div>
-      </div>
-    </div>
+        <!-- Results Section -->
+        <div class="card hidden" id="results-section">
+            <div class="card-header" style="justify-content:space-between;">
+                <div class="flex items-center gap-8">
+                    <span class="card-icon">📋</span>
+                    <h2 data-i18n="results.title">Analysis Results</h2>
+                </div>
+                <button class="btn btn-success btn-sm" id="btn-apply-changes" data-i18n="btn.apply_changes">
+                    ✅ Apply selected changes
+                </button>
+            </div>
 
-  </main>
+            <!-- Tabs -->
+            <div style="padding: 8px 20px 0;">
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="block"><span data-i18n="tab.block">🛑 Block</span> <span
+                            class="tab-count" id="count-block">0</span></button>
+                    <button class="tab-btn" data-tab="unblock"><span data-i18n="tab.unblock">🟢 Unblock</span> <span
+                            class="tab-count" id="count-unblock">0</span></button>
+                    <button class="tab-btn" data-tab="test"><span data-i18n="tab.test">⚠️ Test</span> <span
+                            class="tab-count" id="count-test">0</span></button>
+                    <button class="tab-btn" data-tab="summary" data-i18n="tab.summary">📋 Summary</button>
+                </div>
+            </div>
+
+            <!-- Tab Panels -->
+            <div class="card-body">
+
+                <!-- Block Tab -->
+                <div class="tab-panel active" id="tab-block">
+                    <div class="select-all-row">
+                        <input type="checkbox" class="custom-check" id="select-all-block" checked>
+                        <label for="select-all-block" data-i18n="label.select_all">Select all</label>
+                    </div>
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="results-table">
+                            <thead>
+                            <tr>
+                                <th style="width:36px;"></th>
+                                <th data-i18n="table.domain">Domain</th>
+                                <th data-i18n="table.reason">Reason</th>
+                                <th data-i18n="table.confidence">Confidence</th>
+                            </tr>
+                            </thead>
+                            <tbody id="results-block-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Unblock Tab -->
+                <div class="tab-panel" id="tab-unblock">
+                    <div class="select-all-row">
+                        <input type="checkbox" class="custom-check" id="select-all-unblock" checked>
+                        <label for="select-all-unblock" data-i18n="label.select_all">Select all</label>
+                    </div>
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="results-table">
+                            <thead>
+                            <tr>
+                                <th style="width:36px;"></th>
+                                <th data-i18n="table.domain">Domain</th>
+                                <th data-i18n="table.reason">Reason</th>
+                                <th data-i18n="table.confidence">Confidence</th>
+                            </tr>
+                            </thead>
+                            <tbody id="results-unblock-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Test Tab -->
+                <div class="tab-panel" id="tab-test">
+                    <div style="max-height:400px; overflow-y:auto;">
+                        <table class="results-table">
+                            <thead>
+                            <tr>
+                                <th data-i18n="table.domain">Domain</th>
+                                <th data-i18n="table.reason">Reason</th>
+                            </tr>
+                            </thead>
+                            <tbody id="results-test-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Summary Tab -->
+                <div class="tab-panel" id="tab-summary">
+                    <div class="summary-text" id="summary-content" data-i18n="summary.placeholder">
+                        The analysis summary will be displayed here after completion.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Current Rules Card (always available, independent of AI analysis) -->
+        <div class="card" id="current-rules-card">
+            <div class="card-header cr-header" id="cr-header" style="justify-content:space-between; cursor:pointer;">
+                <div class="flex items-center gap-8">
+                    <span class="card-icon">🌐</span>
+                    <h2 data-i18n="cr.title">Current Rules</h2>
+                    <span class="tab-count" id="cr-count">0</span>
+                </div>
+                <div class="flex items-center gap-8">
+                    <button class="btn btn-outline btn-sm" id="cr-refresh" data-i18n="cr.refresh">↻ Load</button>
+                    <span class="cr-caret" id="cr-caret">▼</span>
+                </div>
+            </div>
+            <div class="card-body" id="cr-body">
+                <div class="cr-controls">
+                    <input type="text" class="form-input" id="cr-search"
+                           data-i18n-placeholder="cr.search_ph" placeholder="Search domain...">
+                    <select class="form-select" id="cr-filter-type">
+                        <option value="all" data-i18n="cr.filter_all">All types</option>
+                        <option value="block" data-i18n="cr.filter_block">🛑 Block only</option>
+                        <option value="exception" data-i18n="cr.filter_exception">🟢 Exceptions only</option>
+                    </select>
+                </div>
+                <div id="filters-content">
+                    <div class="empty-state">
+                        <div class="empty-icon">🌐</div>
+                        <div class="empty-title" data-i18n="cr.title">Current Rules</div>
+                        <div class="empty-desc" data-i18n="empty.filters">Click "Load" to fetch current active filter
+                            rules.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty state when no results -->
+        <div id="empty-results">
+            <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-title" data-i18n="empty.no_results">Ready to work</div>
+                <div class="empty-desc" data-i18n="empty.no_results_desc">Configure the settings in the sidebar and
+                    click "Run Audit" to start DNS log analysis.
+                </div>
+            </div>
+        </div>
+
+    </main>
 
 </div>
 
 
 <!-- =========== MODAL: Add Rule =========== -->
 <div class="modal-overlay hidden" id="modal-overlay">
-  <div class="modal">
-    <h3 id="modal-title" data-i18n="modal.title_new">New Rule</h3>
-    <form id="modal-form">
-      <div class="form-group">
-        <label class="form-label" for="modal-rule-name" data-i18n="modal.name">Name</label>
-        <input class="form-input" type="text" id="modal-rule-name" required
-               data-i18n-placeholder="modal.name_ph" placeholder="E.g.: My domains" maxlength="100">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="modal-rule-text" data-i18n="modal.text">Rule text (prompt)</label>
-        <textarea class="form-input" id="modal-rule-text" rows="4" required
-                  data-i18n-placeholder="modal.text_ph" placeholder="E.g.: Domain wbsg8v.xyz is my personal server, do not block it" maxlength="2000"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="modal-rule-desc" data-i18n="modal.desc">Description (optional)</label>
-        <input class="form-input" type="text" id="modal-rule-desc"
-               data-i18n-placeholder="modal.desc_ph" placeholder="Short description" maxlength="200">
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" id="modal-close" data-i18n="btn.cancel">Cancel</button>
-        <button type="submit" id="modal-submit-btn" class="btn btn-primary" data-i18n="btn.create">Create</button>
-      </div>
-    </form>
-  </div>
+    <div class="modal">
+        <h3 id="modal-title" data-i18n="modal.title_new">New Rule</h3>
+        <form id="modal-form">
+            <div class="form-group">
+                <label class="form-label" for="modal-rule-name" data-i18n="modal.name">Name</label>
+                <input class="form-input" type="text" id="modal-rule-name" required
+                       data-i18n-placeholder="modal.name_ph" placeholder="E.g.: My domains" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="modal-rule-text" data-i18n="modal.text">Rule text (prompt)</label>
+                <textarea class="form-input" id="modal-rule-text" rows="4" required
+                          data-i18n-placeholder="modal.text_ph"
+                          placeholder="E.g.: Domain wbsg8v.xyz is my personal server, do not block it"
+                          maxlength="2000"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="modal-rule-desc" data-i18n="modal.desc">Description (optional)</label>
+                <input class="form-input" type="text" id="modal-rule-desc"
+                       data-i18n-placeholder="modal.desc_ph" placeholder="Short description" maxlength="200">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" id="modal-close" data-i18n="btn.cancel">Cancel</button>
+                <button type="submit" id="modal-submit-btn" class="btn btn-primary" data-i18n="btn.create">Create
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Toast container -->
@@ -319,12 +356,12 @@
 
 <!-- Inline script to set initial language state on the language toggler -->
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const lang = localStorage.getItem('lang') || 'en';
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.lang === lang);
+    document.addEventListener('DOMContentLoaded', () => {
+        const lang = localStorage.getItem('lang') || 'en';
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
     });
-  });
 </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 # 🛡️ AdGuard AI Auditor
 
-**AI-powered DNS log auditor for AdGuard Home — finds missed trackers & ads and detects false-positive blocks using LLMs.**
+**AI-powered DNS log auditor for AdGuard Home - finds missed trackers & ads and detects false-positive blocks using LLMs.**
 *FastAPI backend | Glassmorphism dashboard | Google Gemini / Vertex AI*
 
 [![Python 3.13+](https://img.shields.io/badge/Python-3.13%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
@@ -38,7 +38,8 @@ It automates history network traffic analysis: it finds missed trackers and ads,
 | 🎨 **Interactive dashboard** | Glassmorphism UI with a dark theme and EN/RU localization. |
 | 🚀 **Real-time progress** | Audit progress streamed live via Server-Sent Events (SSE). |
 | 📝 **Custom prompt rules** | CRUD management for custom prompt rules and AI overrides. |
-| ⚡ **Quick actions** | Apply recommended blocks/unblocks directly to AdGuard Home, and inspect active filter rules. |
+| ⚡ **Quick actions** | Apply recommended blocks/unblocks directly to AdGuard Home. |
+| 🗂️ **Filter rule manager** | Browse current AdGuard user rules with live search and type filtering; switch a rule's type (block ↔ allow) or delete it right from the dashboard — no analysis run required. |
 
 ---
 
@@ -49,7 +50,7 @@ It automates history network traffic analysis: it finds missed trackers and ads,
 | **Backend** | Python 3.13+, FastAPI, Pydantic v2 |
 | **Project management** | Poetry |
 | **AI integration** | `google-genai` (planned: `openai`, `httpx`, `qwen`) |
-| **Frontend** | Vanilla HTML5, CSS (Glassmorphism, custom animations) and JavaScript served via Jinja2 templates — no heavy Node.js build required |
+| **Frontend** | Vanilla HTML5, CSS (Glassmorphism, custom animations) and JavaScript served via Jinja2 templates - no heavy Node.js build required |
 | **Logging** | Custom logger with console output |
 
 ---
@@ -125,14 +126,14 @@ poetry run pytest tests/ -v
 
 The key endpoints in the `/api/v1` namespace (see Swagger at `/docs` for the full list):
 
-- `GET /` — Serves the interactive Web Dashboard (the root `/` automatically redirects here).
-- `GET /get-raw-request-log?limit=100` — Get raw query logs from the AdGuard Home server.
-- `GET /get-response-log?limit=100` — Get cleaned and grouped logs (Allowed / Blocked).
-- `GET /audit/stream` — SSE endpoint streaming real-time audit progress and results. Supports `action=full|fetch|analyze`.
-- `GET /audit/cache`, `POST /audit/cache/clear` — Inspect or clear the cached fetched/cleaned data.
-- `POST /to_block`, `POST /to_unblock` — Apply block/unblock decisions directly to AdGuard Home user filters.
-- `GET /get_actual_filter` — Retrieve the current, optimized user filter rules from AdGuard Home.
-- `GET /prompt-rules`, `POST /prompt-rules`, `GET /prompt-rules/{id}`, `PATCH /prompt-rules/{id}`, `DELETE /prompt-rules/{id}` — CRUD endpoints to manage custom prompt rules and guidelines for the AI.
+- `GET /` - Serves the interactive Web Dashboard (the root `/` automatically redirects here).
+- `GET /get-raw-request-log?limit=100` - Get raw query logs from the AdGuard Home server.
+- `GET /get-response-log?limit=100` - Get cleaned and grouped logs (Allowed / Blocked).
+- `GET /audit/stream` - SSE endpoint streaming real-time audit progress and results. Supports `action=full|fetch|analyze`.
+- `GET /audit/cache`, `POST /audit/cache/clear` - Inspect or clear the cached fetched/cleaned data.
+- `POST /to_block`, `POST /to_unblock`, `POST /to_delete` - Apply block/unblock decisions or delete user rules directly in AdGuard Home filters.
+- `GET /get_actual_filter` - Retrieve the current, optimized user filter rules from AdGuard Home (powers the interactive Filter rule manager).
+- `GET /prompt-rules`, `POST /prompt-rules`, `GET /prompt-rules/{id}`, `PATCH /prompt-rules/{id}`, `DELETE /prompt-rules/{id}` - CRUD endpoints to manage custom prompt rules and guidelines for the AI.
 
 ---
 
@@ -198,12 +199,15 @@ src/
   - [ ] Resources that work but shouldn't (false positives).
   - [ ] Resources that should be blocked (missed trackers/ads).
   - [ ] Ads detected on specific services.
-- [x] **Filter management**: Add reading of current user filters (`get_actual_filter`).
+- [x] **Filter management**: Read current user filters (`get_actual_filter`) and manage them from the dashboard — search, filter by type, switch a rule's type, or delete it (`to_delete`).
 
 ### 🔐 Authentication
 - [ ] **Auto auth**: Implement automatic authorization in AdGuard Home (`_get_new_session`).
 
 ### 🎨 Frontend
+- [x] **Filter rule manager**: Always-available Current Rules card with live search, type filtering, inline type switching, and rule deletion.
+- [ ] **Settings panel**: Move language and AdGuard login/password into a dedicated Settings section.
+- [ ] **Interactive Test tab**: Send "requires verification" domains to block/unblock/ignore directly.
 - [ ] **UI improvements**: Currently focusing on FastAPI backend functionality; the frontend interface is under active development.
 
 ---
