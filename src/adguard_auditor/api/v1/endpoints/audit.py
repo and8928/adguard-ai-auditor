@@ -10,6 +10,7 @@ from src.gemini import init as gemini
 from src.vertex_ai import init as vertex_ai
 from src.deepseek import init as deepseek
 from .... import __version__
+from ....core import prompts
 from ....core.config import settings
 from ....core.logger import log
 from ....schemas.adguard_models import OptimizedRulesSet
@@ -144,6 +145,11 @@ async def audit_stream(
         loop = asyncio.get_event_loop()
         cleaned = None
 
+        # Build the final prompt once so it can be reused for the token
+        # estimate (shown on the clean step) and for the actual LLM call.
+        active_rules_text = prompt_rules_service.get_active_rules_text()
+        final_prompt = f"{active_rules_text}\n\n{user_prompt}".strip() if user_prompt or active_rules_text else ""
+
         # ── Steps 1-2 (fetch & clean) - skipped when action=analyze ──
         if action in (AuditAction.FULL, AuditAction.FETCH):
             # Step 1: Fetch logs from AdGuard
@@ -202,6 +208,7 @@ async def audit_stream(
                     "blocked": blocked_count,
                     "model": model_services.value,
                     "cache": audit_cache.status(),
+                    "est_tokens": _estimate_input_tokens(cleaned, final_prompt),
                 })
 
             except Exception as e:
@@ -211,7 +218,11 @@ async def audit_stream(
 
             # If fetch-only mode, stop here
             if action == AuditAction.FETCH:
-                yield _sse({"status": "fetch_complete", "cache": audit_cache.status()})
+                yield _sse({
+                    "status": "fetch_complete",
+                    "cache": audit_cache.status(),
+                    "est_tokens": _estimate_input_tokens(cleaned, final_prompt),
+                })
                 return
 
         # ── Step 3: LLM analysis ──
@@ -229,12 +240,10 @@ async def audit_stream(
                 "blocked": audit_cache.blocked_count,
                 "model": model_services.value,
                 "from_cache": True,
+                "est_tokens": _estimate_input_tokens(cleaned, final_prompt),
             })
 
         try:
-            active_rules_text = prompt_rules_service.get_active_rules_text()
-            final_prompt = f"{active_rules_text}\n\n{user_prompt}".strip() if user_prompt or active_rules_text else ""
-
             yield _sse({"status": "llm_thinking", "model": model_services.value})
 
             if model_services == ModelServices.VERTEX_AI:
@@ -257,7 +266,8 @@ async def audit_stream(
                 yield _sse({"status": "error", "step": "llm", "message": result["error"]})
                 return
 
-            yield _sse({"status": "complete", "result": result})
+            usage = result.pop("_usage", None) if isinstance(result, dict) else None
+            yield _sse({"status": "complete", "result": result, "usage": usage})
 
         except Exception as e:
             log.error(f"[audit/stream] LLM error: {e}")
@@ -291,6 +301,19 @@ def clear_audit_cache():
 def _sse(data: dict) -> str:
     """Format a dict as an SSE 'data:' line."""
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _approx_tokens(text: str) -> int:
+    """Rough token estimate (~4 chars per token) for display purposes only."""
+    return max(1, len(text) // 4)
+
+
+def _estimate_input_tokens(cleaned: dict, final_prompt: str) -> int:
+    """Estimate how many tokens the whole payload (system prompt + user
+    instructions + log data) will consume when sent to the LLM."""
+    base_prompt = prompts.FIRST_SYSTEM_PROMPT.format(user_context_section="")
+    payload = f"{base_prompt}\n{final_prompt}\n{cleaned}"
+    return _approx_tokens(payload)
 
 
 @router.post("/to_block")

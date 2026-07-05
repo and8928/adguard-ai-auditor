@@ -144,14 +144,25 @@ def generate(log_data: str, user_prompt: str = ""):
 def generate_content(client: genai.Client, contents: list, generate_content_config: types.GenerateContentConfig, model: str):
     """Stream a single generation from the given model and parse the JSON result."""
     response_text = ""
+    usage_meta = None
     for chunk in client.models.generate_content_stream(
             model=model,
             contents=contents,
             config=generate_content_config,
     ):
-        response_text += chunk.text
+        if chunk.text:
+            response_text += chunk.text
+        if getattr(chunk, "usage_metadata", None):
+            usage_meta = chunk.usage_metadata
 
-    return json.loads(response_text)
+    result = json.loads(response_text)
+    if usage_meta is not None:
+        result["_usage"] = {
+            "prompt_tokens": getattr(usage_meta, "prompt_token_count", None),
+            "completion_tokens": getattr(usage_meta, "candidates_token_count", None),
+            "total_tokens": getattr(usage_meta, "total_token_count", None),
+        }
+    return result
 
 
 # if __name__ == "__main__":

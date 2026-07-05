@@ -91,6 +91,15 @@ def generate(log_data: str, user_prompt: str = "") -> dict:
                     raise ValueError("Empty response from model")
 
                 parsed = _parse_json_response(raw_output)
+
+                usage = getattr(response, "usage", None)
+                if usage is not None:
+                    parsed["_usage"] = {
+                        "prompt_tokens": getattr(usage, "prompt_tokens", None),
+                        "completion_tokens": getattr(usage, "completion_tokens", None),
+                        "total_tokens": getattr(usage, "total_tokens", None),
+                    }
+
                 log.info(f"Successfully generated response using {model}")
                 log.debug(f"Response generated response using {model} its \n{parsed}\n and raw_output = \n{raw_output}")
                 return parsed

@@ -201,12 +201,14 @@ function handleStreamEvent(data, action) {
             updateStep('clean', 'active', t('step.cleaned_stats', data.allowed, data.blocked));
             break;
 
-        case 'clean_done':
-            if (data.from_cache) {
-                updateStep('clean', 'done', t('step.from_cache'));
-            } else {
-                updateStep('clean', 'done', t('step.cleaned_stats', data.allowed, data.blocked));
+        case 'clean_done': {
+            let cleanDetail = data.from_cache
+                ? t('step.from_cache')
+                : t('step.cleaned_stats', data.allowed, data.blocked);
+            if (data.est_tokens) {
+                cleanDetail += '  ·  ' + t('step.est_tokens', fmtNum(data.est_tokens));
             }
+            updateStep('clean', 'done', cleanDetail);
             // Update cache UI if cache info is present
             if (data.cache) {
                 updateCacheUI(data.cache);
@@ -215,10 +217,15 @@ function handleStreamEvent(data, action) {
                 updateStep('llm', 'active', t('step.llm_start', data.model || 'AI'));
             }
             break;
+        }
 
-        case 'fetch_complete':
+        case 'fetch_complete': {
             // Fetch-only mode finished
-            updateStep('clean', 'done', t('step.done'));
+            let fetchDetail = t('step.done');
+            if (data.est_tokens) {
+                fetchDetail += '  ·  ' + t('step.est_tokens', fmtNum(data.est_tokens));
+            }
+            updateStep('clean', 'done', fetchDetail);
             if (data.cache) {
                 updateCacheUI(data.cache);
             }
@@ -228,14 +235,24 @@ function handleStreamEvent(data, action) {
             }
             showToast(t('toast.fetch_success'), 'success');
             break;
+        }
 
         case 'llm_thinking':
             updateStep('llm', 'active', t('step.llm_thinking', data.model));
             break;
 
-        case 'complete':
-            updateStep('llm', 'done', t('step.llm_done'));
-            updateStep('result', 'done', t('step.done'));
+        case 'complete': {
+            const u = data.usage;
+            if (u && (u.total_tokens || u.completion_tokens || u.prompt_tokens)) {
+                const promptTok = u.prompt_tokens || 0;
+                const outTok = u.completion_tokens || 0;
+                const totalTok = u.total_tokens || (promptTok + outTok);
+                updateStep('llm', 'done', t('step.llm_done_usage', fmtNum(promptTok), fmtNum(outTok)));
+                updateStep('result', 'done', t('step.result_usage', fmtNum(totalTok)));
+            } else {
+                updateStep('llm', 'done', t('step.llm_done'));
+                updateStep('result', 'done', t('step.done'));
+            }
             state.results = data.result;
             renderResults(data.result);
             finishAudit();
@@ -244,6 +261,7 @@ function handleStreamEvent(data, action) {
             }
             showToast(t('toast.audit_success'), 'success');
             break;
+        }
 
         case 'error':
             const errorStep = data.step || 'fetch';
@@ -853,4 +871,9 @@ function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+}
+
+function fmtNum(n) {
+    if (n === null || n === undefined) return '?';
+    return Number(n).toLocaleString();
 }
