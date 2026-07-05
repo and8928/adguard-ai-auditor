@@ -6,9 +6,9 @@ from fastapi import APIRouter, Request, Query, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
+from src.deepseek import init as deepseek
 from src.gemini import init as gemini
 from src.vertex_ai import init as vertex_ai
-from src.deepseek import init as deepseek
 from .... import __version__
 from ....core import prompts
 from ....core.config import settings
@@ -388,3 +388,10 @@ def get_actual_filter() -> OptimizedRulesSet:
     ctrl = controller.DataController()
     log.debug(f"[audit][get_actual_filter] -> start")
     return ctrl.get_actual_filter()
+
+
+@router.post("/login_in_adguadrhome")
+def login_in_adguadrhome() -> str:
+    log.debug(f"[audit][login_in_adguadrhome] -> start")
+
+    return str(ag_client.login())

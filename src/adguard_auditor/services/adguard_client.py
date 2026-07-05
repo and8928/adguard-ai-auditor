@@ -4,37 +4,35 @@ from time import time
 import requests
 
 from src.adguard_auditor.core.config import settings
+from src.adguard_auditor.core import config as env_config
 from src.adguard_auditor.core.endpoints import endpoints
 from src.adguard_auditor.core.logger import log
 
 
 class AdGuardController:
     def __init__(self):
-        self.cookies = settings.AGH_SESSION
+        self.agh_session = settings.AGH_SESSION
         self.oldest: str = ""
         self.session_last_check: int = 0
         self.bad_requests: bool = False
 
-    def check_session(self, attempts: int = 1, auto_create: bool = True) -> bool:
+    def check_session(self, auto_create: bool = True) -> bool:
         if self.session_last_check + 1800 > int(time()) and not self.bad_requests:
             return True
         url = endpoints.get_url(endpoints.PROFILE)
-        result = requests.get(url=url,
-                              cookies={'agh_session': self.cookies})
+        result = requests.get(url=url,cookies={'agh_session': self.agh_session})
         sc = result.status_code
         if sc == 200:
             log.info(f"[check_session][status] -> OK")
             self.session_last_check = int(time())
             return True
         elif sc == 401:
+            log.info(f"[check_session][status] -> 401")
             self.session_last_check = -1
             if auto_create:
+                log.info(f"[check_session][status] -> Create new")
                 self._get_new_session()
-            else:
-                attempts = 0
-            log.info(f"[check_session][status] -> Create new" if attempts > 0 else f"[check_session][status] -> Fail")
-            if attempts > 0:
-                return self.check_session(attempts=attempts - 1, auto_create=auto_create)
+                return self.check_session(auto_create=False)
             log.error(f"[check_session] -> Error get new session | auto_create is {auto_create}")
             return False
         else:
@@ -42,7 +40,23 @@ class AdGuardController:
             return False
 
     def _get_new_session(self):
-        pass
+        """Sreate new session to adguard"""
+        url = endpoints.get_url(endpoints.LOGIN)
+        payload = {"name": f"{settings.ADGUARD_USER}", "password": f"{settings.ADGUARD_PASSWORD}"}
+        result = requests.post(url=url, json=payload)
+        log.debug(f"[adguard_client][get_new_session] -> status: {result.status_code}")
+        log.debug(f"result.__dict__ = {result.__dict__}")
+
+        if result.status_code == 200:
+            log.info(f"[adguard_client][get_new_session] -> Successful login")
+            self.agh_session = result.cookies.get("agh_session")
+            log.info(f"[adguard_client][get_new_session] -> update .env")
+            env_config.update_agh_session(self.agh_session)
+            return "Successful login"
+        else:
+            error_message = f"Error login!: {result.reason} | {result.status_code}"
+            log.error(error_message)
+            return error_message
 
     def get_querylog(self, limit=settings.ADGUARD_STEP_REQ, next: bool = True):
         if not self.check_session():
@@ -52,7 +66,7 @@ class AdGuardController:
         else:
             oldest = ''
         url = endpoints.get_url(endpoints.QUERYLOG, limit=limit, oldest=oldest)
-        result = requests.get(url=url, cookies={'agh_session': settings.AGH_SESSION})
+        result = requests.get(url=url, cookies={'agh_session': self.agh_session})
         log.debug(f"[get_querylog][status_code] -> {result.status_code}")
         log.debug(f"[get_querylog][text] -> {result.text}")
         if result.status_code == 200:
@@ -71,7 +85,7 @@ class AdGuardController:
             return 'Bad session'
         url = endpoints.get_url(endpoints.FILTERING)
         log.debug(f"[get_actual_filter][url] -> {url}")
-        result = requests.get(url=url, cookies={'agh_session': settings.AGH_SESSION})
+        result = requests.get(url=url, cookies={'agh_session': self.agh_session})
         log.debug(f"[adguard_client][get_actual_filter][status_code] -> {result.status_code}")
         log.debug(f"[adguard_client][get_actual_filter][text] -> {result.text}")
         if result.status_code == 200:
@@ -91,7 +105,7 @@ class AdGuardController:
         # AdGuard API {"rules": ["rule1", "rule2"]}
         payload = {"rules": raw_rules}
 
-        result = requests.post(url=url, json=payload, cookies={'agh_session': settings.AGH_SESSION})
+        result = requests.post(url=url, json=payload, cookies={'agh_session': self.agh_session})
         log.debug(f"[adguard_client][set_actual_filter] -> status: {result.status_code}")
 
         if result.status_code == 200:
@@ -99,6 +113,11 @@ class AdGuardController:
         else:
             log.error(f"Error setting filter: {result.text}")
             return False
+
+    def login(self):
+        """Login to adguard"""
+        return self.check_session()
+
 
 
 ag_client = AdGuardController()

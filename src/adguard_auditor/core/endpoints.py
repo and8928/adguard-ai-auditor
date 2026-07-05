@@ -12,6 +12,7 @@ class Endpoints:
     #Status
     FILTERING = "/filtering/status"
     SET_FILTERING = '/filtering/set_rules'
+    LOGIN = "/login"
 
     #Profile
     PROFILE = "/profile"

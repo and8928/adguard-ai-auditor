@@ -11,6 +11,7 @@ from src.adguard_auditor.core.endpoints import endpoints
 from src.adguard_auditor.services.adguard_client import AdGuardController
 
 PROFILE_URL = endpoints.get_url(endpoints.PROFILE)
+LOGIN_URL = endpoints.get_url(endpoints.LOGIN)
 QUERYLOG_URL_PREFIX = f"{endpoints.url}/querylog"
 FILTERING_URL = endpoints.get_url(endpoints.FILTERING)
 SET_FILTERING_URL = endpoints.get_url(endpoints.SET_FILTERING)
@@ -50,12 +51,12 @@ class TestCheckSession:
 
     @responses.activate
     def test_returns_false_on_401_with_auto_create_exhausted(self):
-        """HTTP 401 with auto_create=True but _get_new_session is a no-op should exhaust retries and return False."""
-        # Two requests: first attempt + one retry
+        """HTTP 401 with auto_create=True but login also fails should exhaust retries and return False."""
+        # profile stays 401 (first attempt + retry) and the login attempt fails too
         responses.add(responses.GET, PROFILE_URL, status=401)
-        responses.add(responses.GET, PROFILE_URL, status=401)
+        responses.add(responses.POST, LOGIN_URL, status=401)
         ctrl = self._make_controller(session_last_check=0)
-        result = ctrl.check_session(attempts=1)
+        result = ctrl.check_session()
         assert result is False
 
     @responses.activate
@@ -73,7 +74,7 @@ class TestCheckSession:
         responses.add(responses.GET, PROFILE_URL, status=401)
         ctrl = self._make_controller(session_last_check=0)
         with patch.object(ctrl, "_get_new_session") as mock_new:
-            ctrl.check_session(attempts=1)
+            ctrl.check_session()
             mock_new.assert_called()
 
     @responses.activate
@@ -91,6 +92,7 @@ class TestGetQuerylog:
     def test_returns_bad_session_on_failed_check(self):
         """If check_session fails, get_querylog should return 'Bad session'."""
         responses.add(responses.GET, PROFILE_URL, status=401)
+        responses.add(responses.POST, LOGIN_URL, status=401)
         ctrl = AdGuardController()
         ctrl.session_last_check = 0
         result = ctrl.get_querylog(next=False)
@@ -150,6 +152,7 @@ class TestGetActualFilter:
     @responses.activate
     def test_returns_bad_session_on_auth_fail(self):
         responses.add(responses.GET, PROFILE_URL, status=401)
+        responses.add(responses.POST, LOGIN_URL, status=401)
         ctrl = AdGuardController()
         ctrl.session_last_check = 0
         result = ctrl.get_actual_filter()
@@ -168,6 +171,7 @@ class TestSetActualFilter:
     @responses.activate
     def test_returns_false_on_auth_fail(self):
         responses.add(responses.GET, PROFILE_URL, status=401)
+        responses.add(responses.POST, LOGIN_URL, status=401)
         ctrl = AdGuardController()
         ctrl.session_last_check = 0
         assert ctrl.set_actual_filter(["||test.com^"]) is False

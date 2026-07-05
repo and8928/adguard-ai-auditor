@@ -2,8 +2,10 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 from pathlib import Path
+from dotenv import set_key
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+ENV_PATH = os.path.join(BASE_DIR, ".env")
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AdGuard AI Auditor"
@@ -32,9 +34,25 @@ class Settings(BaseSettings):
     DEBUG_MOD: bool = False
 
     model_config = SettingsConfigDict(
-        env_file=os.path.join(BASE_DIR, ".env"),
+        env_file=ENV_PATH,
         env_file_encoding='utf-8'
     )
 
 
 settings = Settings()
+
+def update_agh_session(agh_session: str):
+    """
+    update agh_session in .env.
+    """
+    set_key(ENV_PATH, "AGH_SESSION", agh_session)
+    if hasattr(settings, "AGH_SESSION"):
+        setattr(settings, "AGH_SESSION", agh_session)
+
+def update_step_req(value: int):
+    """
+    update step_req in .env.
+    """
+    set_key(ENV_PATH, "ADGUARD_STEP_REQ", value)
+    if hasattr(settings, "ADGUARD_STEP_REQ"):
+        setattr(settings, "ADGUARD_STEP_REQ", value)
