@@ -18,7 +18,9 @@
 
 ## 🎯 What is this
 
-**AdGuard AI Auditor** is an intelligent tool built on FastAPI that connects to your AdGuard Home server, collects DNS request logs, and uses Large Language Models (Google Gemini, Vertex AI; OpenAI / Qwen planned) to audit them.
+**AdGuard AI Auditor** is an intelligent tool built on FastAPI that connects to your AdGuard Home server, collects DNS request logs, and uses Large Language Models (Google Gemini, Vertex AI, and DeepSeek) to audit them.
+
+![main finish audit.png](photo/main%20finish%20audit.png)
 
 It automates history network traffic analysis: it finds missed trackers and ads, identifies false positives (where blocking breaks legitimate apps), and suggests recommendations for your filter configuration.
 
@@ -33,13 +35,14 @@ It automates history network traffic analysis: it finds missed trackers and ads,
 | 🛑 **Blocking recommendations** | Finds telemetry, trackers, and ads that slipped past the filter. |
 | 🟢 **Unblocking recommendations** | Detects false positives (CDN, API) where blocking might break a service. |
 | ⚠️ **Requires verification** | Surfaces ambiguous domains for manual testing. |
-| 🤖 **Multiple LLM support** | Google Gemini and Google Cloud Vertex AI, with planned OpenAI ChatGPT and Qwen/local models. |
+| 🤖 **Multiple LLM support** | Google Gemini, Google Cloud Vertex AI, and DeepSeek; with planned OpenAI ChatGPT and Qwen/local models. |
 | 📦 **Structured output** | The AI returns strict JSON with a `reason` and a `confidence` level for every recommendation. |
 | 🎨 **Interactive dashboard** | Glassmorphism UI with a dark theme and EN/RU localization. |
 | 🚀 **Real-time progress** | Audit progress streamed live via Server-Sent Events (SSE). |
-| 📝 **Custom prompt rules** | CRUD management for custom prompt rules and AI overrides. |
-| ⚡ **Quick actions** | Apply recommended blocks/unblocks directly to AdGuard Home. |
-| 🗂️ **Filter rule manager** | Browse current AdGuard user rules with live search and type filtering; switch a rule's type (block ↔ allow) or delete it right from the dashboard — no analysis run required. |
+| 🔢 **Token accounting** | Shows the estimated tokens sent to the AI (on the clean/cache step) and the actual usage after analysis: input/output and total token count.<br/>![tokens info.png](photo/tokens%20info.png) |
+| 📝 **Custom prompt rules** | CRUD management for custom prompt rules and AI overrides.<br/>![ai rules.png](photo/ai%20rules.png) |
+| ⚡ **Quick actions** | Apply recommended blocks/unblocks.<br/>![auto update rules.png](photo/auto%20update%20rules.png) |
+| 🗂️ **Filter rule manager** | Browse current AdGuard user rules with live search and type filtering; switch a rule's type (block ↔ allow) or delete it right from the dashboard — no analysis run required.<br/>![current rules.png](photo/current%20rules.png) |
 
 ---
 
@@ -83,18 +86,24 @@ ADGUARD_PASSWORD="your_password"
 AGH_SESSION="your_session"
 ADGUARD_STEP_REQ=100
 
-# Google Gemini Settings
+# Google Gemini Settings (optional)
 # List of models as a JSON string array (parsed by Pydantic). They are tried in order.
 GEMINI_MODELS_NAME='["gemini-3-pro-preview","gemini-3-flash-preview", "gemini-3.1-pro-preview"]'
 GEMINI_API_KEY = "gemini_key"
 
-# Vertex AI Settings (optional, leave empty if unused)
+# Vertex AI Settings (optional)
 VERTEX_AI_MODELS_NAME='[]'
 VERTEX_AI_API_KEY = ""
 
-# OpenAI Settings
+# OpenAI Settings (not working yet)
 OPENAI_MODEL_NAME="gpt-5-mini"
 OPENAI_API_KEY = "openai_key"
+
+# DeepSeek Settings (optional)
+DEEPSEEK_MODELS_NAME='["deepseek-v4-flash","deepseek-v4-pro"]'
+DEEPSEEK_API_KEY = "deepseek_key"
+DEEPSEEK_REASONING_EFFORT = high #low,medium,high
+DEEPSEEK_THINKING_ENABLED = True
 
 # Set to True for verbose debug logging
 DEBUG_MOD = False
@@ -129,11 +138,14 @@ The key endpoints in the `/api/v1` namespace (see Swagger at `/docs` for the ful
 - `GET /` - Serves the interactive Web Dashboard (the root `/` automatically redirects here).
 - `GET /get-raw-request-log?limit=100` - Get raw query logs from the AdGuard Home server.
 - `GET /get-response-log?limit=100` - Get cleaned and grouped logs (Allowed / Blocked).
-- `GET /audit/stream` - SSE endpoint streaming real-time audit progress and results. Supports `action=full|fetch|analyze`.
+- `POST /ai-analis-data` - Run LLM analysis on the supplied data; the model is chosen via the `model_services` parameter.
+- `POST /auto-analis` - Fetch logs from AdGuard, clean them, and run them through the LLM in a single call (non-SSE equivalent of the full audit).
+- `GET /audit/stream` - SSE endpoint streaming real-time audit progress and results. Supports `action=full|fetch|analyze`; also returns the estimated input tokens (`est_tokens`) and the model's actual usage (`usage`: input/output/total).
 - `GET /audit/cache`, `POST /audit/cache/clear` - Inspect or clear the cached fetched/cleaned data.
 - `POST /to_block`, `POST /to_unblock`, `POST /to_delete` - Apply block/unblock decisions or delete user rules directly in AdGuard Home filters.
 - `GET /get_actual_filter` - Retrieve the current, optimized user filter rules from AdGuard Home (powers the interactive Filter rule manager).
 - `GET /prompt-rules`, `POST /prompt-rules`, `GET /prompt-rules/{id}`, `PATCH /prompt-rules/{id}`, `DELETE /prompt-rules/{id}` - CRUD endpoints to manage custom prompt rules and guidelines for the AI.
+- `GET /prompt-rules/{id}/test` - Preview the prompt block that a rule will inject into the AI's system instructions.
 
 ---
 
@@ -175,6 +187,8 @@ src/
 │   └── init.py                 # Google Gemini client and API wrapper
 ├── vertex_ai/
 │   └── init.py                 # Google Cloud Vertex AI client and API wrapper
+├── deepseek/
+│   └── init.py                 # DeepSeek client and API wrapper (built on the OpenAI library)
 └── openai/
     └── init.py                 # OpenAI client (planned)
 ```
@@ -188,7 +202,6 @@ src/
 
 ### 🤖 AI & Prompt Engineering
 - [x] **Custom prompt rules**: Enhance system prompts with user-specific rules (e.g., override "Windows system widgets" as ads instead of required content).
-  - *Example*: AI suggests `{ "domain": "assets.msn.com", "reason": "Required for Windows widgets", "confidence": "MEDIUM" }`, but the user wants to block it.
 - [ ] **Local AI**: Add support for running local LLM models (e.g., via Ollama or LM Studio).
 - [ ] **API integrations**: Integrate the Qwen API and improve OpenAI integration stability.
 
@@ -208,7 +221,7 @@ src/
 - [x] **Filter rule manager**: Always-available Current Rules card with live search, type filtering, inline type switching, and rule deletion.
 - [ ] **Settings panel**: Move language and AdGuard login/password into a dedicated Settings section.
 - [ ] **Interactive Test tab**: Send "requires verification" domains to block/unblock/ignore directly.
-- [ ] **UI improvements**: Currently focusing on FastAPI backend functionality; the frontend interface is under active development.
+- [x] **UI improvements**: Currently focusing on FastAPI backend functionality; the frontend interface is under active development.
 
 ---
 
