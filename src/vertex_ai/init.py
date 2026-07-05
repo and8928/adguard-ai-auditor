@@ -112,6 +112,7 @@ def generate(log_data: str, user_prompt: str = ""):
             try:
                 result = generate_content(client, contents, generate_content_config, model)
                 log.info(f"Successfully generated response using Vertex AI {model}")
+                log.debug(f"Response generated response using {model} its \n{result}\n")
                 return result
 
             except APIError as e:

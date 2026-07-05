@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     OPENAI_MODEL_NAME: str
     OPENAI_API_KEY: str
 
+    DEEPSEEK_MODELS_NAME: list
+    DEEPSEEK_API_KEY: str
+    DEEPSEEK_REASONING_EFFORT: str
+    DEEPSEEK_THINKING_ENABLED: bool
+
     DEBUG_MOD: bool = False
 
     model_config = SettingsConfigDict(

@@ -14,3 +14,5 @@ FIRST_SYSTEM_PROMPT = """You are an expert Network Security Analyst and AdGuard/
     
     {user_context_section}
 """
+
+DEEPSEEK_STRUCTURE_PROMT = """You need create answer at this structure {'domains_to_block': [{'domain': 'domain1.com', 'reason': 'domain1 telemetry...', 'confidence': 'HIGH'}], 'domains_to_unblock': [{'domain': 'domain2.com', 'reason': 'Essential for domain2 watch history to function properly. User explicitly requested not to break domain2.', 'confidence': 'HIGH'}], 'domains_to_test': [{'domain': 's3.eu-west-2.amazonaws.com', 'reason': 'Generic AWS S3 bucket used for both legitimate app data and tracking.'}, {'domain': 's3.eu-central-1.amazonaws.com', 'reason': 'Generic AWS S3 bucket used for both legitimate app data and tracking.'}], 'analysis_summary': 'Traffic shows a mix of legitimate development tools, AI services, and...'}"""

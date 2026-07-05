@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.gemini import init as gemini
 from src.vertex_ai import init as vertex_ai
+from src.deepseek import init as deepseek
 from .... import __version__
 from ....core.config import settings
 from ....core.logger import log
@@ -64,7 +65,7 @@ def filter_data(data: str, model_services: ModelServices = Query(
     examples={
         "gemini": {"value": "gemini", "summary": "Google Gemini"},
         "chatgpt": {"value": "chatgpt", "summary": "OpenAI ChatGPT"},
-        "qwen": {"value": "qwen", "summary": "Alibaba Qwen"},
+        "deepseek": {"value": "deepseek", "summary": "DeepSeek"},
     }
 )) -> AnalysisResponse:
     """
@@ -74,6 +75,8 @@ def filter_data(data: str, model_services: ModelServices = Query(
     """
     if model_services == ModelServices.VERTEX_AI:
         result = vertex_ai.generate(data)
+    elif model_services == ModelServices.DEEPSEEK:
+        result = deepseek.generate(data)
     else:
         result = gemini.generate(data)
 
@@ -92,7 +95,7 @@ def auto_analis(limit: int = 0, user_prompt: str = Query(
     examples={
         "gemini": {"value": "gemini", "summary": "Google Gemini"},
         "chatgpt": {"value": "chatgpt", "summary": "OpenAI ChatGPT"},
-        "qwen": {"value": "qwen", "summary": "Alibaba Qwen"},
+        "deepseek": {"value": "deepseek", "summary": "DeepSeek"},
     }
 )) -> AnalysisResponse:
     """
@@ -112,6 +115,8 @@ def auto_analis(limit: int = 0, user_prompt: str = Query(
 
     if model_services == ModelServices.VERTEX_AI:
         result = vertex_ai.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
+    elif model_services == ModelServices.DEEPSEEK:
+        result = deepseek.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
     else:
         result = gemini.generate(str(ctrl.clean_data()), user_prompt=final_user_prompt)
 
@@ -236,6 +241,11 @@ async def audit_stream(
                 result = await loop.run_in_executor(
                     _executor,
                     lambda: vertex_ai.generate(str(cleaned), user_prompt=final_prompt)
+                )
+            elif model_services == ModelServices.DEEPSEEK:
+                result = await loop.run_in_executor(
+                    _executor,
+                    lambda: deepseek.generate(str(cleaned), user_prompt=final_prompt)
                 )
             else:
                 result = await loop.run_in_executor(
