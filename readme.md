@@ -79,12 +79,14 @@ poetry install
 Create a `.env` file in the project root. You can copy the template from `.env.example`:
 ```ini
 # AdGuard Settings
+# ADGUARD_BASE_URL defaults to http://host.docker.internal (the Docker host).
+# When running outside Docker, set it to your AdGuard address, e.g. http://192.168.1.1
 ADGUARD_BASE_URL="http://192.168.1.1"
 ADGUARD_PORT=3333
 ADGUARD_USER="your_user"
 ADGUARD_PASSWORD="your_password"
-AGH_SESSION="don't_touch"
 ADGUARD_STEP_REQ=100
+# Note: AGH_SESSION is issued automatically after login and stored in data/state.env - no need to set it manually.
 
 # Google Gemini Settings (optional)
 # List of models as a JSON string array (parsed by Pydantic). They are tried in order.
@@ -125,6 +127,25 @@ poetry run pytest tests/ -v
 
 > [!TIP]
 > All external calls (AdGuard Home, LLM APIs) are mocked, so the tests run without active instances or API keys.
+
+---
+
+## 🐳 Running with Docker
+
+A `Dockerfile` and a `docker-compose.yml` are included for containerized deployment.
+
+### 1. Prepare the environment
+Create your `.env` file as described above. The `data/` directory (mounted as a volume) holds runtime state such as the auto-issued `AGH_SESSION` and your prompt rules, so it persists across restarts.
+
+### 2. Build and start
+```bash
+docker compose up -d --build
+```
+
+The dashboard will be available at `http://<server-ip>:3334` (mapped to the container's internal port `8000`).
+
+> [!NOTE]
+> `ADGUARD_BASE_URL` defaults to `http://host.docker.internal`, which resolves to the Docker host machine - the compose file already maps `host.docker.internal` to the host gateway. If AdGuard Home runs on the same host, no change is needed; point it elsewhere if AdGuard lives on another machine.
 
 ---
 
@@ -195,6 +216,7 @@ src/
 ## 📝 Roadmap (Future Plans)
 
 ### 🛠 Backend & Infrastructure
+- [x] **Docker support**: `Dockerfile` and `docker-compose.yml` for containerized deployment (with `host.docker.internal` host access).
 - [ ] **Switch to `httpx`**: Replace `requests` with `httpx` for better async support and performance.
 
 ### 🤖 AI & Prompt Engineering
