@@ -1,0 +1,26 @@
+# VCS / IDE
+.git
+.gitignore
+.idea
+
+# Python cache / artifacts
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.pytest_cache
+.mypy_cache
+htmlcov
+.coverage
+
+# Проектное, не нужное в образе
+tests
+photo
+toDo.md
+*.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Секреты/данные монтируются volume'ами, в образ не кладём
+.env
+data

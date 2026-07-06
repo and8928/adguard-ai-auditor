@@ -1,0 +1,15 @@
+services:
+  auditor:
+    build: .
+    image: adguard-ai-auditor
+    container_name: adguard-ai-auditor
+    restart: always
+    ports:
+      - "3334:8000"            # доступ по http://<ip-сервера>:3334
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/app/.env
+      - ./data:/app/data
