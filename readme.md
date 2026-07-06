@@ -134,6 +134,24 @@ poetry run pytest tests/ -v
 
 A `Dockerfile` and a `docker-compose.yml` are included for containerized deployment.
 
+> ### ⚡ Quick start - one command, zero setup
+> Paste this into your terminal. It downloads the project, asks a few questions (AdGuard host / port / login / password and **which AI provider you use** - the API keys are saved automatically), then builds and launches everything:
+>
+> ```bash
+> bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh)
+> ```
+>
+> When it finishes, open **`http://<server-ip>:3334`** and you're done. 🎉
+> Re-run the same command anytime to rebuild and restart - it won't ask again unless you delete `.env`.
+
+Already cloned the repo? Just run it locally instead:
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+Prefer to configure everything by hand? Follow the manual steps below.
+
 ### 1. Prepare the environment
 Create your `.env` file as described above. The `data/` directory (mounted as a volume) holds runtime state such as the auto-issued `AGH_SESSION` and your prompt rules, so it persists across restarts.
 
