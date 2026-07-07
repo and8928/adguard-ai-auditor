@@ -8,6 +8,9 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_ANSI=1
 
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir "poetry>=2.0.0,<3.0.0"
 COPY pyproject.toml poetry.lock ./
 RUN poetry install --only main --no-root

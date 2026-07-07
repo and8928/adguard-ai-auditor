@@ -75,6 +75,7 @@ set_env() {
     sed -i.bak -E "s|^[[:space:]]*${key}[[:space:]]*=.*|${key}=${esc}|" "$ENV_FILE"
     rm -f "${ENV_FILE}.bak"
   else
+    [[ -s "$ENV_FILE" && -n "$(tail -c1 "$ENV_FILE")" ]] && printf '\n' >> "$ENV_FILE"
     printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
   fi
 }
@@ -86,6 +87,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo
 
   if [[ -f "$EXAMPLE_FILE" ]]; then cp "$EXAMPLE_FILE" "$ENV_FILE"; else : > "$ENV_FILE"; fi
+  sed -i 's/\r$//' "$ENV_FILE"
+  [[ -s "$ENV_FILE" && -n "$(tail -c1 "$ENV_FILE")" ]] && printf '\n' >> "$ENV_FILE"
 
   echo "── AdGuard Home ──────────────────────────────────────────"
   read -rp "Host/URL [http://host.docker.internal]: " agh_url
