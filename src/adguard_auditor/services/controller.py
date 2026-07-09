@@ -15,10 +15,10 @@ class DataController:
 
         """
         i = 0
-        step = settings.ADGUARD_STEP_REQ
+        step = min(settings.ADGUARD_STEP_REQ, limit) if limit else settings.ADGUARD_STEP_REQ
         while True:
             i += 1
-            row_data, nest_stat = ag_client.get_querylog(next = False if i == 1 else True)
+            row_data, nest_stat = ag_client.get_querylog(limit=step, next = False if i == 1 else True)
             log.debug(f"[get_data][row_data] -> {row_data}")
             log.debug(f"[get_data][nest_stat] -> {nest_stat}")
             if row_data is False:

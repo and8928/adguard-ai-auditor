@@ -155,7 +155,7 @@ async def audit_stream(
             # Step 1: Fetch logs from AdGuard
             try:
                 ctrl = controller.DataController()
-                step_size = settings.ADGUARD_STEP_REQ
+                step_size = min(settings.ADGUARD_STEP_REQ, limit) if limit else settings.ADGUARD_STEP_REQ
                 total_count = 0
                 iteration = 0
 
