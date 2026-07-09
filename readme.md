@@ -111,6 +111,14 @@ DEEPSEEK_THINKING_ENABLED = True
 DEBUG_MOD = False
 ```
 
+> [!WARNING]
+> **Secrets are stored in plaintext** in `.env` and `data/state.env` (AdGuard password and
+> LLM API keys). This is intentional for a **locally-accessible** service: the same value has
+> to be available to the process anyway, so on-disk encryption would only add a false sense of
+> security. Keep the deployment local, ensure `data/` is **not** committed to git (it is in
+> `.gitignore`) and **not** baked into the Docker image (it is in `.dockerignore`), and restrict
+> filesystem access on the host if the machine is shared.
+
 ### 4. Run the application
 ```bash
 poetry run uvicorn src.adguard_auditor.main:app --reload

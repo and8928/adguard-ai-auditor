@@ -1,4 +1,6 @@
 /.env
+# Runtime data & secrets (state.env holds AdGuard login/password + API keys)
+/data/
 /.idea/adguard-ai-auditor.iml
 /.idea/vcs.xml
 /.idea/modules.xml
