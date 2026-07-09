@@ -139,7 +139,30 @@ const translations = {
         "cache.cleared": "Cache cleared",
         "toast.fetch_success": "Data fetched and cached successfully!",
         "toast.no_cache": "No cached data. Run 'Get AdGuard Data' first.",
-        "step.from_cache": "Using cached data"
+        "step.from_cache": "Using cached data",
+
+        // Settings
+        "btn.settings_title": "Settings",
+        "set.title": "Settings",
+        "set.language": "Language",
+        "set.section_adguard": "AdGuard Connection",
+        "set.url": "AdGuard URL",
+        "set.port": "Port",
+        "set.user": "Login",
+        "set.password": "Password",
+        "set.step_req": "Fetch step (records per request)",
+        "set.section_llm": "LLM API Keys",
+        "set.gemini_key": "Gemini API Key",
+        "set.openai_key": "OpenAI API Key",
+        "set.deepseek_key": "DeepSeek API Key",
+        "set.secret_ph": "••• set (leave empty to keep)",
+        "btn.test_conn": "Test connection",
+        "btn.testing": "Testing...",
+        "toast.settings_saved": "Settings saved",
+        "toast.settings_error": "Error saving settings",
+        "toast.settings_load_error": "Failed to load settings",
+        "toast.conn_ok": "Connection successful",
+        "toast.conn_fail": "Connection failed"
     },
     ru: {
         // Sidebar
@@ -277,7 +300,30 @@ const translations = {
         "cache.cleared": "Кэш очищен",
         "toast.fetch_success": "Данные получены и закэшированы!",
         "toast.no_cache": "Нет закэшированных данных. Сначала нажмите «Получить данные AdGuard».",
-        "step.from_cache": "Используем закэшированные данные"
+        "step.from_cache": "Используем закэшированные данные",
+
+        // Settings
+        "btn.settings_title": "Настройки",
+        "set.title": "Настройки",
+        "set.language": "Язык",
+        "set.section_adguard": "Подключение к AdGuard",
+        "set.url": "URL AdGuard",
+        "set.port": "Порт",
+        "set.user": "Логин",
+        "set.password": "Пароль",
+        "set.step_req": "Шаг запроса (записей за раз)",
+        "set.section_llm": "API-ключи LLM",
+        "set.gemini_key": "Gemini API-ключ",
+        "set.openai_key": "OpenAI API-ключ",
+        "set.deepseek_key": "DeepSeek API-ключ",
+        "set.secret_ph": "••• задано (пусто — не менять)",
+        "btn.test_conn": "Проверить подключение",
+        "btn.testing": "Проверка...",
+        "toast.settings_saved": "Настройки сохранены",
+        "toast.settings_error": "Ошибка сохранения настроек",
+        "toast.settings_load_error": "Не удалось загрузить настройки",
+        "toast.conn_ok": "Подключение успешно",
+        "toast.conn_fail": "Не удалось подключиться"
     }
 };
 

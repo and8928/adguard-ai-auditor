@@ -66,6 +66,18 @@ function setupEventListeners() {
     document.getElementById('cr-header').addEventListener('click', toggleCurrentRules);
     document.getElementById('cr-search').addEventListener('input', renderCurrentRules);
     document.getElementById('cr-filter-type').addEventListener('change', renderCurrentRules);
+
+    // Settings modal
+    document.getElementById('btn-settings').addEventListener('click', () => toggleSettings(true));
+    document.getElementById('settings-close').addEventListener('click', () => toggleSettings(false));
+    document.getElementById('settings-overlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) toggleSettings(false);
+    });
+    document.getElementById('settings-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveSettings();
+    });
+    document.getElementById('settings-test').addEventListener('click', testConnection);
 }
 
 
@@ -842,6 +854,109 @@ async function sendRuleAction(endpoint, body, successMsg, errorMsg) {
         container.style.opacity = '1';
     }
 }
+
+/* ===============================
+   SETTINGS
+   =============================== */
+
+function toggleSettings(show) {
+    const overlay = document.getElementById('settings-overlay');
+    if (show) {
+        overlay.classList.remove('hidden');
+        loadSettings();
+    } else {
+        overlay.classList.add('hidden');
+    }
+}
+
+async function loadSettings() {
+    try {
+        const resp = await fetch(`${API}/settings`);
+        if (!resp.ok) throw new Error('load failed');
+        const s = await resp.json();
+
+        document.getElementById('set-adguard-url').value = s.adguard_base_url || '';
+        document.getElementById('set-adguard-port').value = s.adguard_port || '';
+        document.getElementById('set-adguard-user').value = s.adguard_user || '';
+        document.getElementById('set-step-req').value = s.adguard_step_req ?? '';
+
+        // Secrets are never returned; clear the fields (empty = keep current).
+        ['set-adguard-password', 'set-gemini-key', 'set-openai-key', 'set-deepseek-key']
+            .forEach(id => document.getElementById(id).value = '');
+    } catch (e) {
+        showToast(t('toast.settings_load_error'), 'error');
+    }
+}
+
+function collectSettingsPayload() {
+    const body = {
+        adguard_base_url: document.getElementById('set-adguard-url').value.trim(),
+        adguard_port: document.getElementById('set-adguard-port').value.trim(),
+        adguard_user: document.getElementById('set-adguard-user').value.trim(),
+    };
+    const step = document.getElementById('set-step-req').value.trim();
+    if (step) body.adguard_step_req = parseInt(step, 10);
+
+    // Secrets: only send when the user typed something (empty = keep current).
+    const secrets = {
+        adguard_password: 'set-adguard-password',
+        gemini_api_key: 'set-gemini-key',
+        openai_api_key: 'set-openai-key',
+        deepseek_api_key: 'set-deepseek-key',
+    };
+    for (const [field, id] of Object.entries(secrets)) {
+        const val = document.getElementById(id).value;
+        if (val) body[field] = val;
+    }
+    return body;
+}
+
+async function saveSettings() {
+    const btn = document.getElementById('settings-submit-btn');
+    btn.disabled = true;
+    try {
+        const resp = await fetch(`${API}/settings`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(collectSettingsPayload()),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+            const detail = Array.isArray(data.detail)
+                ? data.detail.map(d => d.msg).join('; ')
+                : (data.detail || t('toast.settings_error'));
+            throw new Error(detail);
+        }
+        showToast(t('toast.settings_saved'), 'success');
+        toggleSettings(false);
+    } catch (e) {
+        showToast(`${t('toast.settings_error')}: ${e.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testConnection() {
+    const btn = document.getElementById('settings-test');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('btn.testing');
+    try {
+        const resp = await fetch(`${API}/settings/test`, {method: 'POST'});
+        const data = await resp.json();
+        if (data.ok) {
+            showToast(t('toast.conn_ok'), 'success');
+        } else {
+            showToast(`${t('toast.conn_fail')}: ${data.message || ''}`, 'error');
+        }
+    } catch (e) {
+        showToast(t('toast.conn_fail'), 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
+}
+
 
 /* ===============================
    TOAST NOTIFICATIONS

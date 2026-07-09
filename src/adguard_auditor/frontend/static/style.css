@@ -1017,8 +1017,22 @@ textarea.form-input {
     padding: 28px;
     width: 480px;
     max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     animation: modalIn 0.35s var(--ease-out);
+}
+
+/* Section headings inside the Settings modal */
+.settings-section {
+    margin-top: 22px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
 }
 
 @keyframes modalIn {
