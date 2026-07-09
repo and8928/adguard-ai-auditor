@@ -42,18 +42,49 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Keys that may be edited at runtime via the Settings section, with the
+# type used to coerce the value before it is stored on the settings singleton.
+RUNTIME_SETTINGS: dict[str, type] = {
+    "ADGUARD_USER": str,
+    "ADGUARD_PASSWORD": str,
+    "ADGUARD_BASE_URL": str,
+    "ADGUARD_PORT": str,
+    "ADGUARD_STEP_REQ": int,
+    "GEMINI_API_KEY": str,
+    "OPENAI_API_KEY": str,
+    "DEEPSEEK_API_KEY": str,
+}
+
+
+def _apply_runtime_value(key: str, value):
+    """Persist a single value to state.env and update the settings singleton."""
+    set_key(STATE_PATH, key, str(value))
+    if hasattr(settings, key):
+        setattr(settings, key, value)
+
+
+def update_settings(changes: dict):
+    """
+    Persist a batch of runtime settings to state.env and update the in-memory
+    singleton. Only keys listed in RUNTIME_SETTINGS are accepted; each value is
+    coerced to the declared type.
+    """
+    for key, value in changes.items():
+        if key not in RUNTIME_SETTINGS:
+            continue
+        coerced = RUNTIME_SETTINGS[key](value)
+        _apply_runtime_value(key, coerced)
+
+
 def update_agh_session(agh_session: str):
     """
     update agh_session in state.env.
     """
-    set_key(STATE_PATH, "AGH_SESSION", agh_session)
-    if hasattr(settings, "AGH_SESSION"):
-        setattr(settings, "AGH_SESSION", agh_session)
+    _apply_runtime_value("AGH_SESSION", agh_session)
+
 
 def update_step_req(value: int):
     """
     update step_req in state.env.
     """
-    set_key(STATE_PATH, "ADGUARD_STEP_REQ", str(value))
-    if hasattr(settings, "ADGUARD_STEP_REQ"):
-        setattr(settings, "ADGUARD_STEP_REQ", value)
+    _apply_runtime_value("ADGUARD_STEP_REQ", int(value))

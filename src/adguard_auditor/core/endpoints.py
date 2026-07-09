@@ -2,8 +2,12 @@ from .config import settings
 
 class Endpoints:
     def __init__(self):
-        self.base_url = f"{settings.ADGUARD_BASE_URL}:{settings.ADGUARD_PORT}"
         self.prefix = '/control'
+        self.rebuild()
+
+    def rebuild(self):
+        """Recompute base URL from the current settings (call after URL/port change)."""
+        self.base_url = f"{settings.ADGUARD_BASE_URL}:{settings.ADGUARD_PORT}"
         self.url = f"{self.base_url}{self.prefix}"
 
     #Querylog

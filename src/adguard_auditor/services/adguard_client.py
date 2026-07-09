@@ -58,7 +58,9 @@ class AdGuardController:
             log.error(error_message)
             return error_message
 
-    def get_querylog(self, limit=settings.ADGUARD_STEP_REQ, next: bool = True):
+    def get_querylog(self, limit: int = None, next: bool = True):
+        if not limit:
+            limit = settings.ADGUARD_STEP_REQ
         if not self.check_session():
             return 'Bad session'
         if next and self.oldest != "":
@@ -117,6 +119,18 @@ class AdGuardController:
     def login(self):
         """Login to adguard"""
         return self.check_session()
+
+    def invalidate_session(self):
+        """Force a re-login on the next request (after credentials/URL change)."""
+        self.agh_session = settings.AGH_SESSION
+        self.session_last_check = -1
+        self.bad_requests = False
+
+    def test_connection(self) -> dict:
+        """Try to log in with the current credentials. Used by POST /settings/test."""
+        result = self._get_new_session()
+        ok = result == "Successful login"
+        return {"ok": ok, "message": result}
 
 
 
