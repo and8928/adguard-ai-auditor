@@ -72,14 +72,14 @@ class TestTestLogin:
 class TestTestConnection:
     def test_success(self, fastapi_client, monkeypatch):
         from src.adguard_auditor.services.adguard_client import ag_client
-        monkeypatch.setattr(ag_client, "_get_new_session", lambda: "true")
+        monkeypatch.setattr(ag_client, "check_session", lambda **kw: True)
         response = fastapi_client.post("/api/v1/settings/test_connection")
         assert response.status_code == 200
-        assert response.json() == {"ok": True, "message": "true"}
+        assert response.json() == {"ok": True, "message": True}
 
     def test_failure(self, fastapi_client, monkeypatch):
         from src.adguard_auditor.services.adguard_client import ag_client
-        monkeypatch.setattr(ag_client, "_get_new_session", lambda: "False")
+        monkeypatch.setattr(ag_client, "check_session", lambda **kw: False)
         response = fastapi_client.post("/api/v1/settings/test_connection")
         assert response.status_code == 200
         assert response.json()["ok"] is False
