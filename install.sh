@@ -6,9 +6,14 @@
 #   * inside a cloned repo:   ./install.sh
 #   * straight from the web:  bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh)
 #
-# On the FIRST run (no .env yet) it asks for your AdGuard Home host/port/login/
-# password and which AI provider(s) to use, saves everything into .env, then
-# builds and starts the Docker container. Later runs just rebuild & restart.
+# Modes:
+#   ./install.sh            Just bring the app up. On the first run it seeds a
+#                           default .env (no questions) so you can finish the
+#                           setup in the web UI's ⚙️ Settings panel.
+#   ./install.sh config     Run the interactive wizard (AdGuard host/port/login/
+#                           password + AI provider keys), then build & start.
+#                           Use it for headless setups or to reconfigure later.
+#   ./install.sh help       Show this help.
 #
 set -euo pipefail
 
@@ -16,6 +21,28 @@ REPO_URL="https://github.com/and8928/adguard-ai-auditor.git"
 REPO_DIR="adguard-ai-auditor"
 ENV_FILE=".env"
 EXAMPLE_FILE=".env.example"
+
+print_usage() {
+  cat <<'USAGE'
+AdGuard AI Auditor installer
+
+Usage:
+  ./install.sh            Build & start; seed a default .env on first run
+                          (configure the rest in the web UI ⚙️ Settings).
+  ./install.sh config     Interactive setup wizard, then build & start.
+                          Aliases: configure, settings.
+  ./install.sh help       Show this help.
+USAGE
+}
+
+# --- Parse mode -------------------------------------------------------------
+MODE="up"
+case "${1:-}" in
+  ""|up|start|--up)            MODE="up" ;;
+  config|configure|settings|--config|-c) MODE="config" ;;
+  help|-h|--help)              print_usage; exit 0 ;;
+  *) echo "❌ Unknown argument '$1'." >&2; echo >&2; print_usage >&2; exit 1 ;;
+esac
 
 # Make interactive `read` work even under `curl ... | bash`.
 if [[ ! -t 0 && -e /dev/tty ]]; then exec </dev/tty; fi
@@ -80,15 +107,18 @@ set_env() {
   fi
 }
 
-# --- 2. First-run configuration --------------------------------------------
-if [[ ! -f "$ENV_FILE" ]]; then
-  echo
-  echo "🛠  First run detected - let's configure the app."
-  echo
-
+# --- helper: seed .env from the template (no prompts) -----------------------
+seed_env() {
   if [[ -f "$EXAMPLE_FILE" ]]; then cp "$EXAMPLE_FILE" "$ENV_FILE"; else : > "$ENV_FILE"; fi
   sed -i 's/\r$//' "$ENV_FILE"
   [[ -s "$ENV_FILE" && -n "$(tail -c1 "$ENV_FILE")" ]] && printf '\n' >> "$ENV_FILE"
+}
+
+# --- helper: interactive configuration wizard -------------------------------
+configure_interactive() {
+  echo
+  echo "🛠  Interactive setup"
+  echo
 
   echo "── AdGuard Home ──────────────────────────────────────────"
   read -rp "Host/URL [http://host.docker.internal]: " agh_url
@@ -138,12 +168,29 @@ if [[ ! -f "$ENV_FILE" ]]; then
   echo
   echo "✅ Configuration saved to $ENV_FILE"
   if [[ "$configured_ai" -eq 0 ]]; then
-    echo "ℹ️  No AI key was set. Add at least one provider key to $ENV_FILE before running an audit."
+    echo "ℹ️  No AI key was set. Add at least one provider key here or in the UI ⚙️ Settings before running an audit."
   fi
   echo
+}
+
+# --- 2. Configuration -------------------------------------------------------
+SEEDED=0
+if [[ ! -f "$ENV_FILE" ]]; then
+  seed_env
+  SEEDED=1
+fi
+
+if [[ "$MODE" == "config" ]]; then
+  configure_interactive
+elif [[ "$SEEDED" -eq 1 ]]; then
+  echo
+  echo "🌱 Seeded a default $ENV_FILE from the template."
+  echo "   Finish the setup in the web UI ⚙️ Settings after it starts,"
+  echo "   or re-run './install.sh config' for the terminal wizard."
+  echo
 else
-  echo "ℹ️  $ENV_FILE already exists - skipping configuration."
-  echo "   (Delete $ENV_FILE and re-run this script to reconfigure.)"
+  echo "ℹ️  $ENV_FILE already exists - leaving it as is."
+  echo "   (Run './install.sh config' to reconfigure from the terminal.)"
   echo
 fi
 
@@ -156,5 +203,8 @@ $COMPOSE up -d --build
 echo
 echo "✅ AdGuard AI Auditor is running."
 echo "   Dashboard : http://localhost:3334   (or http://<server-ip>:3334)"
+if [[ "$MODE" != "config" && "$SEEDED" -eq 1 ]]; then
+  echo "   Configure : open the dashboard → ⚙️ Settings (AdGuard host/login + AI key)"
+fi
 echo "   Logs      : $COMPOSE logs -f"
 echo "   Stop      : $COMPOSE down"
