@@ -43,7 +43,7 @@ It automates history network traffic analysis: it finds missed trackers and ads,
 | 📝 **Custom prompt rules** | CRUD management for custom prompt rules and AI overrides.<br/>![ai rules.png](photo/ai%20rules.png) |
 | ⚡ **Quick actions** | Apply recommended blocks/unblocks.<br/>![auto update rules.png](photo/auto%20update%20rules.png) |
 | 🗂️ **Filter rule manager** | Browse current AdGuard user rules with live search and type filtering; switch a rule's type (block ↔ allow) or delete it right from the dashboard — no analysis run required.<br/>![current rules.png](photo/current%20rules.png) |
-| ⚙️ **Runtime settings** | Edit AdGuard URL/port/login/password, fetch step, and LLM API keys from the web UI without a restart. Changes persist to `data/state.env`; secrets stay write-only and can be verified with **Test connection** / **Test login**. |
+| ⚙️ **Runtime settings** | Edit AdGuard URL/port/login/password, fetch step, LLM API keys (Gemini, Vertex AI, OpenAI, DeepSeek), and per-provider model lists from the web UI without a restart. Changes persist to `data/state.env`; secrets stay write-only and can be verified with **Test connection** / **Test login**. |
 
 ---
 
@@ -129,7 +129,7 @@ DEBUG_MOD = False
 
 > [!NOTE]
 > **Runtime Settings.** Most of these values (language, AdGuard URL/port, login/password,
-> fetch step, LLM API keys) can also be edited at runtime from the **⚙️ Settings** panel
+> fetch step, LLM API keys, and per-provider model lists) can also be edited at runtime from the **⚙️ Settings** panel
 > in the web UI. Changes are persisted to `data/state.env` and applied without a restart —
 > the `.env` file only provides the initial defaults.
 
@@ -165,19 +165,25 @@ poetry run pytest tests/ -v
 A `Dockerfile` and a `docker-compose.yml` are included for containerized deployment.
 
 > ### ⚡ Quick start - one command, zero setup
-> Paste this into your terminal. It downloads the project, asks a few questions (AdGuard host / port / login / password and **which AI provider you use** - the API keys are saved automatically), then builds and launches everything:
+> Paste this into your terminal. It downloads the project, seeds a default `.env`, then builds and launches everything - **no questions asked**:
 >
 > ```bash
 > bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh)
 > ```
 >
-> When it finishes, open **`http://<server-ip>:3334`** and you're done. 🎉
-> Re-run the same command anytime to rebuild and restart - it won't ask again unless you delete `.env`.
+> When it finishes, open **`http://<server-ip>:3334`** and complete the setup right in the **⚙️ Settings** panel (AdGuard host/login + your AI key). 🎉
+> Re-run the same command anytime to rebuild and restart.
 
-Already cloned the repo? Just run it locally instead:
+Prefer a terminal wizard? Append `config` to run the interactive setup (AdGuard host / port / login / password and **which AI provider you use** - keys saved automatically). Handy for headless servers or to reconfigure later:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh) config
+```
+
+Already cloned the repo? Run it locally instead:
 ```bash
 chmod +x install.sh
-./install.sh
+./install.sh          # bring up; configure in the UI
+./install.sh config   # or run the terminal wizard
 ```
 
 Prefer to configure everything by hand? Follow the manual steps below.
@@ -212,7 +218,7 @@ The key endpoints in the `/api/v1` namespace (see Swagger at `/docs` for the ful
 - `GET /get_actual_filter` - Retrieve the current, optimized user filter rules from AdGuard Home (powers the interactive Filter rule manager).
 - `GET /prompt-rules`, `POST /prompt-rules`, `GET /prompt-rules/{id}`, `PATCH /prompt-rules/{id}`, `DELETE /prompt-rules/{id}` - CRUD endpoints to manage custom prompt rules and guidelines for the AI.
 - `GET /prompt-rules/{id}/test` - Preview the prompt block that a rule will inject into the AI's system instructions.
-- `GET /settings`, `PUT /settings` - Read or update runtime settings (AdGuard URL/port/login/password, fetch step, LLM API keys). Secrets are never returned by `GET` (only `*_set` booleans) and an empty secret in `PUT` keeps the current value.
+- `GET /settings`, `PUT /settings` - Read or update runtime settings (AdGuard URL/port/login/password, fetch step, LLM API keys, and per-provider model lists). Secrets are never returned by `GET` (only `*_set` booleans) and an empty secret in `PUT` keeps the current value.
 - `POST /settings/test_connection` - Check whether the current `AGH_SESSION` is still valid.
 - `POST /settings/test_login` - Try to log in to AdGuard Home with the currently saved credentials.
 
