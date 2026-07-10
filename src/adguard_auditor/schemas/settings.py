@@ -3,7 +3,13 @@ from typing import Optional
 
 
 # Secret fields: never revealed by GET, and an empty value means "keep current".
-_SECRET_KEYS = {"adguard_password", "gemini_api_key", "openai_api_key", "deepseek_api_key"}
+_SECRET_KEYS = {
+    "adguard_password",
+    "gemini_api_key",
+    "vertex_ai_api_key",
+    "openai_api_key",
+    "deepseek_api_key",
+}
 
 # Maps SettingsUpdate field -> config/state.env key.
 _FIELD_TO_CONFIG = {
@@ -13,8 +19,13 @@ _FIELD_TO_CONFIG = {
     "adguard_port": "ADGUARD_PORT",
     "adguard_step_req": "ADGUARD_STEP_REQ",
     "gemini_api_key": "GEMINI_API_KEY",
+    "gemini_models_name": "GEMINI_MODELS_NAME",
+    "vertex_ai_api_key": "VERTEX_AI_API_KEY",
+    "vertex_ai_models_name": "VERTEX_AI_MODELS_NAME",
     "openai_api_key": "OPENAI_API_KEY",
+    "openai_model_name": "OPENAI_MODEL_NAME",
     "deepseek_api_key": "DEEPSEEK_API_KEY",
+    "deepseek_models_name": "DEEPSEEK_MODELS_NAME",
 }
 
 
@@ -26,8 +37,14 @@ class SettingsRead(BaseModel):
     adguard_step_req: int
     adguard_password_set: bool
     gemini_api_key_set: bool
+    vertex_ai_api_key_set: bool
     openai_api_key_set: bool
     deepseek_api_key_set: bool
+    # Model lists / names are not secret -> returned as-is for editing.
+    gemini_models_name: list[str]
+    vertex_ai_models_name: list[str]
+    deepseek_models_name: list[str]
+    openai_model_name: str
 
 
 class SettingsUpdate(BaseModel):
@@ -38,8 +55,21 @@ class SettingsUpdate(BaseModel):
     adguard_port: Optional[str] = None
     adguard_step_req: Optional[int] = Field(default=None, ge=1)
     gemini_api_key: Optional[str] = None
+    gemini_models_name: Optional[list[str]] = None
+    vertex_ai_api_key: Optional[str] = None
+    vertex_ai_models_name: Optional[list[str]] = None
     openai_api_key: Optional[str] = None
+    openai_model_name: Optional[str] = None
     deepseek_api_key: Optional[str] = None
+    deepseek_models_name: Optional[list[str]] = None
+
+    @field_validator("gemini_models_name", "vertex_ai_models_name", "deepseek_models_name")
+    @classmethod
+    def clean_model_list(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        # Drop blank entries and trim whitespace around each model name.
+        if v is None:
+            return v
+        return [item.strip() for item in v if item and item.strip()]
 
     @field_validator("adguard_user", "adguard_base_url")
     @classmethod

@@ -20,8 +20,13 @@ def get_settings() -> SettingsRead:
         adguard_step_req=settings.ADGUARD_STEP_REQ,
         adguard_password_set=bool(settings.ADGUARD_PASSWORD),
         gemini_api_key_set=bool(settings.GEMINI_API_KEY),
+        vertex_ai_api_key_set=bool(settings.VERTEX_AI_API_KEY),
         openai_api_key_set=bool(settings.OPENAI_API_KEY),
         deepseek_api_key_set=bool(settings.DEEPSEEK_API_KEY),
+        gemini_models_name=settings.GEMINI_MODELS_NAME,
+        vertex_ai_models_name=settings.VERTEX_AI_MODELS_NAME,
+        deepseek_models_name=settings.DEEPSEEK_MODELS_NAME,
+        openai_model_name=settings.OPENAI_MODEL_NAME,
     )
 
 

@@ -55,6 +55,29 @@ class TestSettingsUpdateSchema:
         from src.adguard_auditor.schemas.settings import SettingsUpdate
         assert SettingsUpdate().to_changes() == {}
 
+    def test_model_list_trimmed_and_blanks_dropped(self):
+        from src.adguard_auditor.schemas.settings import SettingsUpdate
+        u = SettingsUpdate(gemini_models_name=[" a ", "", "b", "   "])
+        assert u.to_changes() == {"GEMINI_MODELS_NAME": ["a", "b"]}
+
+    def test_vertex_key_and_models_mapped(self):
+        from src.adguard_auditor.schemas.settings import SettingsUpdate
+        u = SettingsUpdate(
+            vertex_ai_api_key="vk",
+            vertex_ai_models_name=["v-1"],
+            openai_model_name="gpt-5-mini",
+        )
+        assert u.to_changes() == {
+            "VERTEX_AI_API_KEY": "vk",
+            "VERTEX_AI_MODELS_NAME": ["v-1"],
+            "OPENAI_MODEL_NAME": "gpt-5-mini",
+        }
+
+    def test_empty_vertex_key_kept(self):
+        from src.adguard_auditor.schemas.settings import SettingsUpdate
+        # Vertex key is a secret -> empty means "keep current" and is skipped.
+        assert SettingsUpdate(vertex_ai_api_key="").to_changes() == {}
+
 
 # ---------------------------------------------------------------------------
 # config.update_settings — persists to state.env and mutates the singleton
@@ -83,6 +106,20 @@ class TestUpdateSettings:
         monkeypatch.setattr(config, "set_key", lambda path, k, v: written.append((k, v)))
         config.update_settings({"NOT_A_SETTING": "x"})
         assert written == []
+
+    def test_list_persisted_as_json(self, monkeypatch):
+        from src.adguard_auditor.core import config
+
+        written = []
+        monkeypatch.setattr(config, "set_key", lambda path, k, v: written.append((k, v)))
+        monkeypatch.setattr(config.settings, "GEMINI_MODELS_NAME",
+                            config.settings.GEMINI_MODELS_NAME)
+
+        config.update_settings({"GEMINI_MODELS_NAME": ["m-a", "m-b"]})
+
+        assert config.settings.GEMINI_MODELS_NAME == ["m-a", "m-b"]
+        # Persisted as valid JSON so pydantic-settings can parse it on reload.
+        assert ("GEMINI_MODELS_NAME", '["m-a", "m-b"]') in written
 
 
 # ---------------------------------------------------------------------------

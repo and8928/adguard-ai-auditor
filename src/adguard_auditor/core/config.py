@@ -1,5 +1,6 @@
 # init config (read .env)
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import json
 import os
 from pathlib import Path
 from dotenv import set_key
@@ -51,14 +52,21 @@ RUNTIME_SETTINGS: dict[str, type] = {
     "ADGUARD_PORT": str,
     "ADGUARD_STEP_REQ": int,
     "GEMINI_API_KEY": str,
+    "GEMINI_MODELS_NAME": list,
+    "VERTEX_AI_API_KEY": str,
+    "VERTEX_AI_MODELS_NAME": list,
     "OPENAI_API_KEY": str,
+    "OPENAI_MODEL_NAME": str,
     "DEEPSEEK_API_KEY": str,
+    "DEEPSEEK_MODELS_NAME": list,
 }
 
 
 def _apply_runtime_value(key: str, value):
     """Persist a single value to state.env and update the settings singleton."""
-    set_key(STATE_PATH, key, str(value))
+    # Lists are stored as JSON so pydantic-settings can parse them back on reload.
+    stored = json.dumps(value) if isinstance(value, list) else str(value)
+    set_key(STATE_PATH, key, stored)
     if hasattr(settings, key):
         setattr(settings, key, value)
 

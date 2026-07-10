@@ -385,22 +385,51 @@
                 <input class="form-input" type="number" id="set-step-req" min="1">
             </div>
 
-            <!-- LLM API keys -->
+            <!-- LLM API keys & models -->
             <div class="form-label settings-section" data-i18n="set.section_llm">LLM API Keys</div>
+
             <div class="form-group">
                 <label class="form-label" for="set-gemini-key" data-i18n="set.gemini_key">Gemini API Key</label>
                 <input class="form-input" type="password" id="set-gemini-key"
                        autocomplete="off" data-i18n-placeholder="set.secret_ph">
             </div>
             <div class="form-group">
+                <label class="form-label" for="set-gemini-models" data-i18n="set.gemini_models">Gemini models</label>
+                <input class="form-input" type="text" id="set-gemini-models"
+                       autocomplete="off" data-i18n-placeholder="set.models_ph">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="set-vertex-key" data-i18n="set.vertex_key">Vertex AI API Key</label>
+                <input class="form-input" type="password" id="set-vertex-key"
+                       autocomplete="off" data-i18n-placeholder="set.secret_ph">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="set-vertex-models" data-i18n="set.vertex_models">Vertex AI models</label>
+                <input class="form-input" type="text" id="set-vertex-models"
+                       autocomplete="off" data-i18n-placeholder="set.models_ph">
+            </div>
+
+            <div class="form-group">
                 <label class="form-label" for="set-openai-key" data-i18n="set.openai_key">OpenAI API Key</label>
                 <input class="form-input" type="password" id="set-openai-key"
                        autocomplete="off" data-i18n-placeholder="set.secret_ph">
             </div>
             <div class="form-group">
+                <label class="form-label" for="set-openai-model" data-i18n="set.openai_model">OpenAI model</label>
+                <input class="form-input" type="text" id="set-openai-model"
+                       autocomplete="off" data-i18n-placeholder="set.model_ph">
+            </div>
+
+            <div class="form-group">
                 <label class="form-label" for="set-deepseek-key" data-i18n="set.deepseek_key">DeepSeek API Key</label>
                 <input class="form-input" type="password" id="set-deepseek-key"
                        autocomplete="off" data-i18n-placeholder="set.secret_ph">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="set-deepseek-models" data-i18n="set.deepseek_models">DeepSeek models</label>
+                <input class="form-input" type="text" id="set-deepseek-models"
+                       autocomplete="off" data-i18n-placeholder="set.models_ph">
             </div>
 
             <div class="modal-actions">

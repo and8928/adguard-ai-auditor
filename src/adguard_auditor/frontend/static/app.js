@@ -881,8 +881,14 @@ async function loadSettings() {
         document.getElementById('set-adguard-user').value = s.adguard_user || '';
         document.getElementById('set-step-req').value = s.adguard_step_req ?? '';
 
+        // Model lists / names are not secret -> pre-fill so they can be edited.
+        document.getElementById('set-gemini-models').value = (s.gemini_models_name || []).join(', ');
+        document.getElementById('set-vertex-models').value = (s.vertex_ai_models_name || []).join(', ');
+        document.getElementById('set-deepseek-models').value = (s.deepseek_models_name || []).join(', ');
+        document.getElementById('set-openai-model').value = s.openai_model_name || '';
+
         // Secrets are never returned; clear the fields (empty = keep current).
-        ['set-adguard-password', 'set-gemini-key', 'set-openai-key', 'set-deepseek-key']
+        ['set-adguard-password', 'set-gemini-key', 'set-vertex-key', 'set-openai-key', 'set-deepseek-key']
             .forEach(id => document.getElementById(id).value = '');
     } catch (e) {
         showToast(t('toast.settings_load_error'), 'error');
@@ -898,10 +904,19 @@ function collectSettingsPayload() {
     const step = document.getElementById('set-step-req').value.trim();
     if (step) body.adguard_step_req = parseInt(step, 10);
 
+    // Model lists (comma-separated) -> arrays; single model name -> string.
+    const toList = (id) => document.getElementById(id).value
+        .split(',').map(m => m.trim()).filter(Boolean);
+    body.gemini_models_name = toList('set-gemini-models');
+    body.vertex_ai_models_name = toList('set-vertex-models');
+    body.deepseek_models_name = toList('set-deepseek-models');
+    body.openai_model_name = document.getElementById('set-openai-model').value.trim();
+
     // Secrets: only send when the user typed something (empty = keep current).
     const secrets = {
         adguard_password: 'set-adguard-password',
         gemini_api_key: 'set-gemini-key',
+        vertex_ai_api_key: 'set-vertex-key',
         openai_api_key: 'set-openai-key',
         deepseek_api_key: 'set-deepseek-key',
     };
