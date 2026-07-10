@@ -39,7 +39,7 @@ class AdGuardController:
             log.error(f"[check_session] -> Unexpected status code: {sc}")
             return False
 
-    def _get_new_session(self):
+    def _get_new_session(self) -> str:
         """Sreate new session to adguard"""
         url = endpoints.get_url(endpoints.LOGIN)
         payload = {"name": f"{settings.ADGUARD_USER}", "password": f"{settings.ADGUARD_PASSWORD}"}
@@ -127,6 +127,12 @@ class AdGuardController:
         self.bad_requests = False
 
     def test_connection(self) -> dict:
+        """Check AGH_SESSION. Used by POST /settings/test."""
+        result = self.check_session(auto_create = False)
+        ok = result == True
+        return {"ok": ok, "message": result}
+
+    def test_login(self) -> dict:
         """Try to log in with the current credentials. Used by POST /settings/test."""
         result = self._get_new_session()
         ok = result == "Successful login"

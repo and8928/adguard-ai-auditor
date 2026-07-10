@@ -21,7 +21,12 @@ def update_settings(update: SettingsUpdate):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/test")
+@router.post("/test_connection")
+def test_connection():
+    """Try to log in to AdGuard with the current AGH_SESSION."""
+    return ag_client.test_connection()
+
+@router.post("/test_login")
 def test_connection():
     """Try to log in to AdGuard with the current credentials."""
-    return ag_client.test_connection()
+    return ag_client.test_login()

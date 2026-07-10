@@ -78,6 +78,7 @@ function setupEventListeners() {
         saveSettings();
     });
     document.getElementById('settings-test').addEventListener('click', testConnection);
+    document.getElementById('settings-test-login').addEventListener('click', testLogin);
 }
 
 
@@ -942,7 +943,28 @@ async function testConnection() {
     btn.disabled = true;
     btn.textContent = t('btn.testing');
     try {
-        const resp = await fetch(`${API}/settings/test`, {method: 'POST'});
+        const resp = await fetch(`${API}/settings/test_connection`, {method: 'POST'});
+        const data = await resp.json();
+        if (data.ok) {
+            showToast(t('toast.conn_ok'), 'success');
+        } else {
+            showToast(`${t('toast.conn_fail')}: ${data.message || ''}`, 'error');
+        }
+    } catch (e) {
+        showToast(t('toast.conn_fail'), 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
+}
+
+async function testLogin() {
+    const btn = document.getElementById('settings-test-login');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = t('btn.testing');
+    try {
+        const resp = await fetch(`${API}/settings/test_login`, {method: 'POST'});
         const data = await resp.json();
         if (data.ok) {
             showToast(t('toast.conn_ok'), 'success');
