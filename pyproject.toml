@@ -1,6 +1,6 @@
 [project]
 name = "adguard-auditor"
-version = "1.6.1"
+version = "1.6.2"
 description = "AI-powered AdGuard Home log analyzer"
 authors = [
     {name = "and8928"}
