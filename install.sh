@@ -145,17 +145,23 @@ pull_latest() {
   fi
 
   echo "📥 Fetching the latest code..."
-  # Keep shallow clones shallow, but never truncate a full clone's history.
-  local depth=()
-  [[ "$(git rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]] && depth=(--depth 1)
+  # Installs are cloned with --depth 1. A shallow commit has no parents, so git
+  # cannot see that the new revision descends from it and bails out with
+  # "refusing to merge unrelated histories". Deepen once; the repo is tiny and
+  # every later update is then an ordinary fast-forward.
+  if [[ "$(git rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+    echo "   (shallow checkout - downloading the full history once)"
+    git fetch --unshallow origin || git fetch origin
+  else
+    git fetch origin
+  fi
 
   local target
   if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-    git fetch "${depth[@]}" origin
     target='@{u}'
   else
-    # Detached HEAD or no tracking branch (e.g. a --depth 1 clone of a tag).
-    git fetch "${depth[@]}" origin HEAD
+    # Detached HEAD or no tracking branch: fall back to the remote's default.
+    git fetch origin HEAD
     target=FETCH_HEAD
   fi
 
