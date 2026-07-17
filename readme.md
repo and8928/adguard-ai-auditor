@@ -186,6 +186,16 @@ chmod +x install.sh
 ./install.sh config   # or run the terminal wizard
 ```
 
+### 🔄 Updating
+
+From inside the cloned repo:
+```bash
+./install.sh update
+```
+It fast-forwards to the latest code, adds any settings introduced by the new release to your `.env` (existing values and keys are never overwritten), then rebuilds and restarts the container. Your `.env` and the `data/` directory are preserved.
+
+If you have local edits to tracked files, the update stops and asks you to commit or stash them first - nothing is overwritten behind your back.
+
 Prefer to configure everything by hand? Follow the manual steps below.
 
 ### 1. Prepare the environment
