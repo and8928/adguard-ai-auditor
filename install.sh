@@ -21,6 +21,7 @@ set -euo pipefail
 
 REPO_URL="https://github.com/and8928/adguard-ai-auditor.git"
 REPO_DIR="adguard-ai-auditor"
+CONTAINER_NAME="adguard-ai-auditor"   # must match container_name in docker-compose.yml
 ENV_FILE=".env"
 EXAMPLE_FILE=".env.example"
 
@@ -52,9 +53,23 @@ case "${1:-}" in
 esac
 
 # Make interactive `read` work even under `curl ... | bash`.
-if [[ ! -t 0 && -e /dev/tty ]]; then exec </dev/tty; fi
+# Never fatal: with no usable terminal (cron, CI) only `config` needs input.
+if [[ ! -t 0 && -e /dev/tty ]]; then exec </dev/tty 2>/dev/null || true; fi
 
 # --- 0. Locate the project (or clone it) -----------------------------------
+# Ask Docker where the existing installation lives. Compose stamps the working
+# directory onto the container, so this finds it no matter where the user is
+# standing - which matters a lot for the `bash <(curl ...)` one-liner.
+find_installed_dir() {
+  command -v docker >/dev/null 2>&1 || return 1
+  local dir
+  dir="$(docker inspect "$CONTAINER_NAME" \
+           --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' \
+           2>/dev/null)" || return 1
+  [[ -n "$dir" && -f "$dir/docker-compose.yml" ]] || return 1
+  printf '%s' "$dir"
+}
+
 locate_project() {
   # Already sitting in the repo?
   if [[ -f docker-compose.yml && -f Dockerfile ]]; then return; fi
@@ -64,15 +79,37 @@ locate_project() {
   sd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)" || sd=""
   if [[ -n "$sd" && -f "$sd/docker-compose.yml" ]]; then cd "$sd"; return; fi
 
-  # Otherwise fetch it.
+  # A container is already running somewhere - reuse THAT copy, so we never
+  # clone a second one and clobber the user's .env with a blank template.
+  local installed
+  if installed="$(find_installed_dir)"; then
+    if cd "$installed" 2>/dev/null; then
+      echo "📍 Found the existing installation at: $installed"
+      return
+    fi
+    echo "⚠️  A container is registered at '$installed', but that path is not"
+    echo "   reachable from here. Continuing with the local copy instead."
+  fi
+
+  # Nothing installed yet - fetch it.
   if ! command -v git >/dev/null 2>&1; then
     echo "❌ git is required to download the project. Install git and retry." >&2
     exit 1
   fi
   if [[ -d "$REPO_DIR/.git" ]]; then
-    echo "📥 Updating existing checkout in ./$REPO_DIR ..."
+    echo "📥 Using the existing checkout in ./$REPO_DIR ..."
     cd "$REPO_DIR"
-    git pull --ff-only || echo "⚠️  Could not fast-forward; using local copy."
+    # In update mode pull_latest handles this properly (dirty-tree checks etc).
+    if [[ "$MODE" != "update" ]]; then
+      git pull --ff-only || echo "⚠️  Could not fast-forward; using local copy."
+    fi
+  elif [[ "$MODE" == "update" ]]; then
+    echo "❌ No existing installation found to update." >&2
+    echo "   Nothing is running, and there is no ./$REPO_DIR checkout here." >&2
+    echo "   If you installed it elsewhere, cd into that folder and re-run:" >&2
+    echo "     ./install.sh update" >&2
+    echo "   Or install fresh by running this without the 'update' argument." >&2
+    exit 1
   else
     echo "📥 Cloning $REPO_URL ..."
     git clone --depth 1 "$REPO_URL" "$REPO_DIR"
@@ -91,6 +128,11 @@ pull_latest() {
   if ! command -v git >/dev/null 2>&1; then
     echo "❌ git is required to update. Install git and retry." >&2
     exit 1
+  fi
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    echo "⚠️  This checkout has no 'origin' remote - skipping the code update."
+    echo "   Add one with: git remote add origin $REPO_URL"
+    return
   fi
 
   local before after

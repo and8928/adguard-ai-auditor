@@ -74,6 +74,66 @@ Open the **⚙️ Settings** dialog from the top bar to configure the app at run
 
 ---
 
+## 🐳 Running with Docker
+
+A `Dockerfile` and a `docker-compose.yml` are included for containerized deployment.
+
+> ### ⚡ Quick start - one command, zero setup
+> Paste this into your terminal. It downloads the project, seeds a default `.env`, then builds and launches everything - **no questions asked**:
+>
+> ```bash
+> bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh)
+> ```
+>
+> When it finishes, open **`http://<server-ip>:3334`** and complete the setup right in the **⚙️ Settings** panel (AdGuard host/login + your AI key). 🎉
+> Re-run the same command anytime to rebuild and restart.
+
+Prefer a terminal wizard? Append `config` to run the interactive setup (AdGuard host / port / login / password and **which AI provider you use** - keys saved automatically). Handy for headless servers or to reconfigure later:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh) config
+```
+
+Already cloned the repo? Run it locally instead:
+```bash
+chmod +x install.sh
+./install.sh          # bring up; configure in the UI
+./install.sh config   # or run the terminal wizard
+```
+
+### 🔄 Updating
+
+Same one-liner, plus `update` - run it from anywhere, no need to remember where you installed it:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh) update
+```
+It asks Docker where your installation lives, so it always updates **that** copy instead of creating a new one. Inside the cloned repo `./install.sh update` does the same thing.
+
+What it does:
+- fast-forwards to the latest code (`git pull`);
+- adds settings introduced by the new release to your `.env` - existing values and API keys are **never** overwritten;
+- rebuilds and restarts the container, then removes the old image.
+
+Your `.env` and the `data/` directory (settings, session, prompt rules) are preserved.
+
+If you have local edits to tracked files, the update stops and asks you to commit or stash them first - nothing is overwritten behind your back.
+
+Prefer to configure everything by hand? Follow the manual steps below.
+
+### 1. Prepare the environment
+Create your `.env` file as described above. The `data/` directory (mounted as a volume) holds runtime state such as the auto-issued `AGH_SESSION` and your prompt rules, so it persists across restarts.
+
+### 2. Build and start
+```bash
+docker compose up -d --build
+```
+
+The dashboard will be available at `http://<server-ip>:3334` (mapped to the container's internal port `8000`).
+
+> [!NOTE]
+> `ADGUARD_BASE_URL` defaults to `http://host.docker.internal`, which resolves to the Docker host machine - the compose file already maps `host.docker.internal` to the host gateway. If AdGuard Home runs on the same host, no change is needed; point it elsewhere if AdGuard lives on another machine.
+
+---
+
 ## 🚀 Installation & Running
 
 The recommended way to install and run the project is using **Poetry**.
@@ -157,59 +217,6 @@ poetry run pytest tests/ -v
 
 > [!TIP]
 > All external calls (AdGuard Home, LLM APIs) are mocked, so the tests run without active instances or API keys.
-
----
-
-## 🐳 Running with Docker
-
-A `Dockerfile` and a `docker-compose.yml` are included for containerized deployment.
-
-> ### ⚡ Quick start - one command, zero setup
-> Paste this into your terminal. It downloads the project, seeds a default `.env`, then builds and launches everything - **no questions asked**:
->
-> ```bash
-> bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh)
-> ```
->
-> When it finishes, open **`http://<server-ip>:3334`** and complete the setup right in the **⚙️ Settings** panel (AdGuard host/login + your AI key). 🎉
-> Re-run the same command anytime to rebuild and restart.
-
-Prefer a terminal wizard? Append `config` to run the interactive setup (AdGuard host / port / login / password and **which AI provider you use** - keys saved automatically). Handy for headless servers or to reconfigure later:
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/and8928/adguard-ai-auditor/main/install.sh) config
-```
-
-Already cloned the repo? Run it locally instead:
-```bash
-chmod +x install.sh
-./install.sh          # bring up; configure in the UI
-./install.sh config   # or run the terminal wizard
-```
-
-### 🔄 Updating
-
-From inside the cloned repo:
-```bash
-./install.sh update
-```
-It fast-forwards to the latest code, adds any settings introduced by the new release to your `.env` (existing values and keys are never overwritten), then rebuilds and restarts the container. Your `.env` and the `data/` directory are preserved.
-
-If you have local edits to tracked files, the update stops and asks you to commit or stash them first - nothing is overwritten behind your back.
-
-Prefer to configure everything by hand? Follow the manual steps below.
-
-### 1. Prepare the environment
-Create your `.env` file as described above. The `data/` directory (mounted as a volume) holds runtime state such as the auto-issued `AGH_SESSION` and your prompt rules, so it persists across restarts.
-
-### 2. Build and start
-```bash
-docker compose up -d --build
-```
-
-The dashboard will be available at `http://<server-ip>:3334` (mapped to the container's internal port `8000`).
-
-> [!NOTE]
-> `ADGUARD_BASE_URL` defaults to `http://host.docker.internal`, which resolves to the Docker host machine - the compose file already maps `host.docker.internal` to the host gateway. If AdGuard Home runs on the same host, no change is needed; point it elsewhere if AdGuard lives on another machine.
 
 ---
 
