@@ -5,3 +5,4 @@ class ModelServices(str, Enum):
     CHATGPT = "chatgpt"
     DEEPSEEK = "deepseek"
     VERTEX_AI = "vertex_ai"
+    UNSLOTH = "unsloth"

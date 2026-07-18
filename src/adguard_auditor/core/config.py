@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     DEEPSEEK_REASONING_EFFORT: str
     DEEPSEEK_THINKING_ENABLED: bool
 
+    UNSLOTH_MODELS_NAME: list = ["default"]
+    UNSLOTH_API_KEY: str = "dummy"
+    UNSLOTH_BASE_URL: str = "http://localhost:8888/v1"
+
     DEBUG_MOD: bool = False
 
     model_config = SettingsConfigDict(
@@ -59,6 +63,9 @@ RUNTIME_SETTINGS: dict[str, type] = {
     "OPENAI_MODEL_NAME": str,
     "DEEPSEEK_API_KEY": str,
     "DEEPSEEK_MODELS_NAME": list,
+    "UNSLOTH_API_KEY": str,
+    "UNSLOTH_MODELS_NAME": list,
+    "UNSLOTH_BASE_URL": str,
 }
 
 
