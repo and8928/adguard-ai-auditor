@@ -886,9 +886,11 @@ async function loadSettings() {
         document.getElementById('set-vertex-models').value = (s.vertex_ai_models_name || []).join(', ');
         document.getElementById('set-deepseek-models').value = (s.deepseek_models_name || []).join(', ');
         document.getElementById('set-openai-model').value = s.openai_model_name || '';
+        document.getElementById('set-unsloth-models').value = (s.unsloth_models_name || []).join(', ');
+        document.getElementById('set-unsloth-url').value = s.unsloth_base_url || '';
 
         // Secrets are never returned; clear the fields (empty = keep current).
-        ['set-adguard-password', 'set-gemini-key', 'set-vertex-key', 'set-openai-key', 'set-deepseek-key']
+        ['set-adguard-password', 'set-gemini-key', 'set-vertex-key', 'set-openai-key', 'set-deepseek-key', 'set-unsloth-key']
             .forEach(id => document.getElementById(id).value = '');
     } catch (e) {
         showToast(t('toast.settings_load_error'), 'error');
@@ -911,6 +913,9 @@ function collectSettingsPayload() {
     body.vertex_ai_models_name = toList('set-vertex-models');
     body.deepseek_models_name = toList('set-deepseek-models');
     body.openai_model_name = document.getElementById('set-openai-model').value.trim();
+    body.unsloth_models_name = toList('set-unsloth-models');
+    const unslothUrl = document.getElementById('set-unsloth-url').value.trim();
+    if (unslothUrl) body.unsloth_base_url = unslothUrl;
 
     // Secrets: only send when the user typed something (empty = keep current).
     const secrets = {
@@ -919,6 +924,7 @@ function collectSettingsPayload() {
         vertex_ai_api_key: 'set-vertex-key',
         openai_api_key: 'set-openai-key',
         deepseek_api_key: 'set-deepseek-key',
+        unsloth_api_key: 'set-unsloth-key',
     };
     for (const [field, id] of Object.entries(secrets)) {
         const val = document.getElementById(id).value;

@@ -9,6 +9,7 @@ _SECRET_KEYS = {
     "vertex_ai_api_key",
     "openai_api_key",
     "deepseek_api_key",
+    "unsloth_api_key",
 }
 
 # Maps SettingsUpdate field -> config/state.env key.
@@ -26,6 +27,9 @@ _FIELD_TO_CONFIG = {
     "openai_model_name": "OPENAI_MODEL_NAME",
     "deepseek_api_key": "DEEPSEEK_API_KEY",
     "deepseek_models_name": "DEEPSEEK_MODELS_NAME",
+    "unsloth_api_key": "UNSLOTH_API_KEY",
+    "unsloth_models_name": "UNSLOTH_MODELS_NAME",
+    "unsloth_base_url": "UNSLOTH_BASE_URL",
 }
 
 
@@ -40,11 +44,14 @@ class SettingsRead(BaseModel):
     vertex_ai_api_key_set: bool
     openai_api_key_set: bool
     deepseek_api_key_set: bool
+    unsloth_api_key_set: bool
     # Model lists / names are not secret -> returned as-is for editing.
     gemini_models_name: list[str]
     vertex_ai_models_name: list[str]
     deepseek_models_name: list[str]
     openai_model_name: str
+    unsloth_models_name: list[str]
+    unsloth_base_url: str
 
 
 class SettingsUpdate(BaseModel):
@@ -62,8 +69,12 @@ class SettingsUpdate(BaseModel):
     openai_model_name: Optional[str] = None
     deepseek_api_key: Optional[str] = None
     deepseek_models_name: Optional[list[str]] = None
+    unsloth_api_key: Optional[str] = None
+    unsloth_models_name: Optional[list[str]] = None
+    unsloth_base_url: Optional[str] = None
 
-    @field_validator("gemini_models_name", "vertex_ai_models_name", "deepseek_models_name")
+    @field_validator("gemini_models_name", "vertex_ai_models_name", "deepseek_models_name",
+                     "unsloth_models_name")
     @classmethod
     def clean_model_list(cls, v: Optional[list[str]]) -> Optional[list[str]]:
         # Drop blank entries and trim whitespace around each model name.

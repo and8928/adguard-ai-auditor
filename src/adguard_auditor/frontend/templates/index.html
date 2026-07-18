@@ -37,6 +37,7 @@
                         <option value="chatgpt">OpenAI ChatGPT</option>
                         <option value="deepseek">DeepSeek</option>
                         <option value="vertex_ai">Google Cloud Vertex AI</option>
+                        <option value="unsloth">Unsloth</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -429,6 +430,22 @@
             <div class="form-group">
                 <label class="form-label" for="set-deepseek-models" data-i18n="set.deepseek_models">DeepSeek models</label>
                 <input class="form-input" type="text" id="set-deepseek-models"
+                       autocomplete="off" data-i18n-placeholder="set.models_ph">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="set-unsloth-url" data-i18n="set.unsloth_url">Unsloth base URL</label>
+                <input class="form-input" type="text" id="set-unsloth-url"
+                       autocomplete="off" data-i18n-placeholder="set.unsloth_url_ph">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="set-unsloth-key" data-i18n="set.unsloth_key">Unsloth API Key</label>
+                <input class="form-input" type="password" id="set-unsloth-key"
+                       autocomplete="off" data-i18n-placeholder="set.secret_ph">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="set-unsloth-models" data-i18n="set.unsloth_models">Unsloth models</label>
+                <input class="form-input" type="text" id="set-unsloth-models"
                        autocomplete="off" data-i18n-placeholder="set.models_ph">
             </div>
 
