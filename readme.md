@@ -35,7 +35,7 @@ It automates history network traffic analysis: it finds missed trackers and ads,
 | 🛑 **Blocking recommendations** | Finds telemetry, trackers, and ads that slipped past the filter. |
 | 🟢 **Unblocking recommendations** | Detects false positives (CDN, API) where blocking might break a service. |
 | ⚠️ **Requires verification** | Surfaces ambiguous domains for manual testing. |
-| 🤖 **Multiple LLM support** | Google Gemini, Google Cloud Vertex AI, and DeepSeek; with planned OpenAI ChatGPT and Qwen/local models. |
+| 🤖 **Multiple LLM support** | Google Gemini, Google Cloud Vertex AI, DeepSeek, and local models via Unsloth (OpenAI-compatible local server). |
 | 📦 **Structured output** | The AI returns strict JSON with a `reason` and a `confidence` level for every recommendation. |
 | 🎨 **Interactive dashboard** | Glassmorphism UI with a dark theme and EN/RU localization. |
 | 🚀 **Real-time progress** | Audit progress streamed live via Server-Sent Events (SSE). |
@@ -68,7 +68,8 @@ Open the **⚙️ Settings** dialog from the top bar to configure the app at run
 |---|---|
 | **Backend** | Python 3.13+, FastAPI, Pydantic v2 |
 | **Project management** | Poetry |
-| **AI integration** | `google-genai` (planned: `openai`, `httpx`, `qwen`) |
+| **AI integration** | `google-genai`; `openai` client library for DeepSeek and local Unsloth servers |
+| **HTTP client** | `httpx` |
 | **Frontend** | Vanilla HTML5, CSS (Glassmorphism, custom animations) and JavaScript served via Jinja2 templates - no heavy Node.js build required |
 | **Logging** | Custom logger with console output |
 
@@ -284,8 +285,8 @@ src/
 │   └── init.py                 # Google Cloud Vertex AI client and API wrapper
 ├── deepseek/
 │   └── init.py                 # DeepSeek client and API wrapper (built on the OpenAI library)
-└── openai/
-    └── init.py                 # OpenAI client (planned)
+└── unsloth/
+    └── init.py                 # Local Unsloth server client (OpenAI-compatible API)
 ```
 
 ---
@@ -294,12 +295,11 @@ src/
 
 ### 🛠 Backend & Infrastructure
 - [x] **Docker support**: `Dockerfile` and `docker-compose.yml` for containerized deployment (with `host.docker.internal` host access).
-- [ ] **Switch to `httpx`**: Replace `requests` with `httpx` for better async support and performance.
+- [x] **Switch to `httpx`**: Replace `requests` with `httpx` for better async support and performance.
 
 ### 🤖 AI & Prompt Engineering
 - [x] **Custom prompt rules**: Enhance system prompts with user-specific rules (e.g., override "Windows system widgets" as ads instead of required content).
-- [ ] **Local AI**: Add Unsloth integration.
-- [ ] **API integrations**: Add OpenAI integration.
+- [x] **Local AI**: Add Unsloth integration.
 
 ### 📊 Analysis & Filtering
 - [ ] **Resource categorization**:

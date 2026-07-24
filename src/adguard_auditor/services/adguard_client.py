@@ -1,12 +1,15 @@
 import json
 from time import time
 
-import requests
+import httpx
 
 from src.adguard_auditor.core.config import settings
 from src.adguard_auditor.core import config as env_config
 from src.adguard_auditor.core.endpoints import endpoints
 from src.adguard_auditor.core.logger import log
+
+# httpx defaults to a 5s timeout; querylog fetches with a large step can take longer
+REQUEST_TIMEOUT = 30.0
 
 
 class AdGuardController:
@@ -20,7 +23,7 @@ class AdGuardController:
         if self.session_last_check + 1800 > int(time()) and not self.bad_requests:
             return True
         url = endpoints.get_url(endpoints.PROFILE)
-        result = requests.get(url=url,cookies={'agh_session': self.agh_session})
+        result = httpx.get(url=url, cookies={'agh_session': self.agh_session}, timeout=REQUEST_TIMEOUT)
         sc = result.status_code
         if sc == 200:
             log.info(f"[check_session][status] -> OK")
@@ -43,7 +46,7 @@ class AdGuardController:
         """Sreate new session to adguard"""
         url = endpoints.get_url(endpoints.LOGIN)
         payload = {"name": f"{settings.ADGUARD_USER}", "password": f"{settings.ADGUARD_PASSWORD}"}
-        result = requests.post(url=url, json=payload)
+        result = httpx.post(url=url, json=payload, timeout=REQUEST_TIMEOUT)
         log.debug(f"[adguard_client][get_new_session] -> status: {result.status_code}")
         log.debug(f"result.__dict__ = {result.__dict__}")
 
@@ -54,7 +57,7 @@ class AdGuardController:
             env_config.update_agh_session(self.agh_session)
             return "Successful login"
         else:
-            error_message = f"Error login!: {result.reason} | {result.status_code}"
+            error_message = f"Error login!: {result.reason_phrase} | {result.status_code}"
             log.error(error_message)
             return error_message
 
@@ -68,7 +71,7 @@ class AdGuardController:
         else:
             oldest = ''
         url = endpoints.get_url(endpoints.QUERYLOG, limit=limit, oldest=oldest)
-        result = requests.get(url=url, cookies={'agh_session': self.agh_session})
+        result = httpx.get(url=url, cookies={'agh_session': self.agh_session}, timeout=REQUEST_TIMEOUT)
         log.debug(f"[get_querylog][status_code] -> {result.status_code}")
         log.debug(f"[get_querylog][text] -> {result.text}")
         if result.status_code == 200:
@@ -87,7 +90,7 @@ class AdGuardController:
             return 'Bad session'
         url = endpoints.get_url(endpoints.FILTERING)
         log.debug(f"[get_actual_filter][url] -> {url}")
-        result = requests.get(url=url, cookies={'agh_session': self.agh_session})
+        result = httpx.get(url=url, cookies={'agh_session': self.agh_session}, timeout=REQUEST_TIMEOUT)
         log.debug(f"[adguard_client][get_actual_filter][status_code] -> {result.status_code}")
         log.debug(f"[adguard_client][get_actual_filter][text] -> {result.text}")
         if result.status_code == 200:
@@ -107,7 +110,7 @@ class AdGuardController:
         # AdGuard API {"rules": ["rule1", "rule2"]}
         payload = {"rules": raw_rules}
 
-        result = requests.post(url=url, json=payload, cookies={'agh_session': self.agh_session})
+        result = httpx.post(url=url, json=payload, cookies={'agh_session': self.agh_session}, timeout=REQUEST_TIMEOUT)
         log.debug(f"[adguard_client][set_actual_filter] -> status: {result.status_code}")
 
         if result.status_code == 200:
